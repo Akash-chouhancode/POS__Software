@@ -271,6 +271,7 @@ const AddCategory = () => {
 
   return (
     <>
+    
       <div className="main_div ">
         <section className="side_section flex">
           <div className={`${isOpen === false ? "hidden" : ""}`}>

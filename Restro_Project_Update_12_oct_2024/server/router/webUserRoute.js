@@ -31,4 +31,5 @@ router.get("/webreservation/:id", webUserController.getReservationById);
 router.post("/addwebreservation", webUserController.createReservationNew);
 router.post("/webplace-order", webUserController.weborderPlace);
 router.get("/webcustomersorder/:customer_id", webUserController.getWebOrderById);
+router.post("/getintouch",webUserController.getInTouch)
 module.exports = router;

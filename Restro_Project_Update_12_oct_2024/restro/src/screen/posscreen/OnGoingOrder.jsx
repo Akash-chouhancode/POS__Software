@@ -3,10 +3,11 @@ import Nav from "../../components/Nav";
 import { useReactToPrint } from "react-to-print";
 import { NavLink } from "react-router-dom";
 import Hamburger from "hamburger-react";
+import { TiFlowMerge } from "react-icons/ti";
 import { FaRegEdit } from "react-icons/fa";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { IoPrintOutline } from "react-icons/io5";
-import { PiSplitVerticalDuotone } from "react-icons/pi";
+import { PiSplitHorizontalBold } from "react-icons/pi";
 import { IoDocumentAttachOutline } from "react-icons/io5";
 import { FaRegTrashCan } from "react-icons/fa6";
 import DialogBox from "../../components/DialogBox";
@@ -33,27 +34,30 @@ import { ComponentToPrintInvoice } from "../../components/ComponentToPrintInvoic
 import { InvoiceDialogBox2 } from "../../components/InvoiceDialogeBox2";
 import { data } from "autoprefixer";
 import { toast } from "react-toastify";
+import SplitModal from "../../components/SplitModal";
+import SplitPaynmentModal from "../../components/SplitPaynmentModal";
 
 const OnGoingOrder = () => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-  const APP_URL = import.meta.env.VITE_APP_URL;
   const [isOpen, setOpen] = useState(true);
- 
   const [paymentMethod, setPaymentMethod] = useState();
   const [paynmentModal, setPaynmentModal] = useState(false);
+  const [mergepaynmentModal, setMergePaynmentModal] = useState(false);
   const [paymentData, setPaymentData] = useState([]);
-  const [selectedOption, setSelectedOption] = useState("");
   const [isDeletOpen, setIsDeletOpen] = useState(false);
   const [ongoingData, setOngoingData] = useState([]);
   const [invoiceData, setInvoiceData] = useState([]);
   const [billData, setBillData] = useState([]);
   const [cModal5, setCmodal5] = useState(false);
- const [bookTableData,setBookTableData]=useState([])
+  const [bookTableData, setBookTableData] = useState([]);
   const [cModal4, setCmodal4] = useState(false);
   const [ubookedData, setUnbookedData] = useState([]);
-
-
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [splitData, setSplitData] = useState([]);
+  const [splitModal, setSplitModal] = useState(false);
   const [invoiceDataModal, setInvoiceDataModal] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState([]);
+
   //delete id
   const [selectedOrderId, setSelectedOrderId] = useState(null);
 
@@ -89,7 +93,7 @@ const OnGoingOrder = () => {
     { id: 9, title: "Hold", icon: <FaHandHoldingUsd /> },
     { id: 10, title: "Transaction", icon: <FaNetworkWired /> },
   ];
-// get all booked table
+  // get all booked table
   const getBookTable = () => {
     axios
       .get(`${API_BASE_URL}/bookedtable`)
@@ -101,7 +105,7 @@ const OnGoingOrder = () => {
         toast.error("Cant show table");
       });
   };
-  
+
   // get all unbooked table
 
   const getunBookTable = () => {
@@ -116,18 +120,11 @@ const OnGoingOrder = () => {
       });
   };
 
-
-
-
-
-
-
-
-// working of escape key
+  // working of escape key
   useEffect(() => {
-     const handleKeyDown = (event) => {
+    const handleKeyDown = (event) => {
       if (event.key === "Escape") {
-        setCmodal5(false); 
+        setCmodal5(false);
         setPaynmentModal(false);
         setInvoiceDataModal(false);
         setIsDeletOpen(false);
@@ -138,8 +135,6 @@ const OnGoingOrder = () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-
-
 
   const showPaynment = (order_id) => {
     axios
@@ -174,9 +169,7 @@ const OnGoingOrder = () => {
 
   const getOngoing = async () => {
     try {
-      const responce = await axios.get(
-        `${API_BASE_URL}/getOngoingOrder`
-      );
+      const responce = await axios.get(`${API_BASE_URL}/getOngoingOrder`);
       console.log(responce.data.data);
 
       setOngoingData(responce.data.data);
@@ -211,7 +204,7 @@ const OnGoingOrder = () => {
         `${API_BASE_URL}/getOrderById/${order_id}`
       );
       setBillData([response.data]); // Set the data first
-console.log("Bill me daal na h ye data ",response.data)
+      console.log("Bill me daal na h ye data ", response.data);
       // Delay the print action until after the state has been updated
       setTimeout(() => {
         handlePrint(); // Trigger the print
@@ -226,29 +219,28 @@ console.log("Bill me daal na h ye data ",response.data)
     setIsDeletOpen(true);
   };
 
- 
   const DeletModal = ({ isOpen, onClose, order_id }) => {
     if (!isOpen) return null;
     const [anyreason, setAnyreason] = useState(""); // renamed to match backend
 
     const cancelOrder = (order_id) => {
       axios
-      .post(
-        `${API_BASE_URL}/cancelOrder/${order_id}`,
-        { anyreason }, 
-        { headers: { "Content-Type": "application/json" } } 
-      )
-      .then((response) => {
-        console.log(response.data);
-        getOngoing(); // Assuming this fetches updated order data
-        onClose(); // Close modal after successful cancellation
-        toast.success("Order cancel sucessfully.")
-      })
+        .post(
+          `${API_BASE_URL}/cancelOrder/${order_id}`,
+          { anyreason },
+          { headers: { "Content-Type": "application/json" } }
+        )
+        .then((response) => {
+          console.log(response.data);
+          getOngoing(); // Assuming this fetches updated order data
+          onClose(); // Close modal after successful cancellation
+          toast.success("Order cancel sucessfully.");
+        })
         .catch((error) => {
           console.error(error);
         });
     };
-   
+
     return (
       <>
         <div className="justify-center flex items-center overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none ">
@@ -306,17 +298,68 @@ console.log("Bill me daal na h ye data ",response.data)
     );
   };
 
-  
+  const showShplitData = (order_id) => {
+    axios
+      .get(`${API_BASE_URL}/splitorderdata/${order_id}`)
+      .then((response) => {
+        console.log(response.data);
+        setSplitData(response.data.menuItems);
+        setSplitModal(true);
+        getBookTable();
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+
+  const handleCheckboxChange = (item) => {
+    if (selectedItems.some((selected) => selected.row_id === item.row_id)) {
+      setSelectedItems(
+        selectedItems.filter((selected) => selected.row_id !== item.row_id)
+      );
+    } else {
+      setSelectedItems([...selectedItems, item]);
+    }
+  };
+
+  const remainingItems = splitData.filter(
+    (item) => !selectedItems.some((selected) => selected.row_id === item.row_id)
+  );
+
+  useEffect(() => {
+    if (splitData) {
+      console.log("paydata", paymentData);
+    }
+  }, [splitData]);
+
+  const handleCheckboxMerge = (val) => {
+    setSelectedOrders((prevSelected) => {
+      if (prevSelected.find((order) => order.order_id === val.order_id)) {
+        // If already selected, remove it
+        return prevSelected.filter((order) => order.order_id !== val.order_id);
+      } else {
+        // If not selected, add it
+        return [...prevSelected, val];
+      }
+    });
+  };
+
+  const handleMergeOrders = () => {
+    setMergePaynmentModal(true);
+    console.log("Selected Orders for Merge:", selectedOrders);
+    // Further processing like sending data to API or updating state can go here.
+  };
+
   const refreshOrderList = () => {
     getOngoing();
     getBookTable();
-    getunBookTable()
+    getunBookTable();
   };
   useEffect(() => {
     getOngoing();
     allPaynmnetMethod();
-    getBookTable()
-    getunBookTable()
+    getBookTable();
+    getunBookTable();
   }, []);
   return (
     <>
@@ -335,7 +378,7 @@ console.log("Bill me daal na h ye data ",response.data)
             <section className="section1 flex justify-evenly gap-x-6 pt-2 ">
               <div className=" flex gap-x-6">
                 <div className="orderButton flex flex-wrap ">
-                {OrderButtons.map((val, index) => (
+                  {OrderButtons.map((val, index) => (
                     <div
                       className={`w-1/3 ${
                         index === 2 ? "pointer-events-none" : ""
@@ -377,24 +420,34 @@ console.log("Bill me daal na h ye data ",response.data)
                 ))}
               </div>
             </section>
+            {/* //show booked and unbookd table */}
             <section className=" section2 mt-7">
               <div className=" flex gap-x-6 ">
-               
                 <button
                   onClick={() => setCmodal5(true)}
-                className=" cursor-pointer  w-full text-md bg-[#4CBBA1] flex gap-1 justify-center items-center leading-4 px-4 py-5  rounded-md  text-white ">
+                  className=" cursor-pointer  w-full text-md bg-[#4CBBA1] flex gap-1 justify-center items-center leading-4 px-4 py-5  rounded-md  text-white "
+                >
                   {" "}
                   <MdTableBar />
                   Booked Table
                 </button>
 
                 <button
-                onClick={() => setCmodal4(true)}
-                
-                className=" cursor-pointer  w-full text-md bg-[#4CBBA1] flex gap-1 justify-center items-center leading-4 px-4 py-5  rounded-md  text-white ">
+                  onClick={() => setCmodal4(true)}
+                  className=" cursor-pointer  w-full text-md bg-[#4CBBA1] flex gap-1 justify-center items-center leading-4 px-4 py-5  rounded-md  text-white "
+                >
                   {" "}
                   <MdTableBar />
                   Unbooked Table
+                </button>
+
+                <button
+                  onClick={handleMergeOrders}
+                  className=" cursor-pointer  w-full text-md bg-[#4CBBA1] flex gap-1 justify-center items-center leading-4 px-4 py-5  rounded-md  text-white "
+                >
+                  {" "}
+                  <TiFlowMerge />
+                  Merge order
                 </button>
               </div>
             </section>
@@ -403,7 +456,7 @@ console.log("Bill me daal na h ye data ",response.data)
                 {ongoingData.map((val, index) => (
                   <>
                     <div className=" card p-5">
-                      <div className=" h-[200px] w-[210px] border-[1px] border-[#4CBBA1] shadow-sm shadow-[#4CBBA1]">
+                      <div className=" p-2 border-[1px] border-[#4CBBA1] shadow-sm shadow-[#4CBBA1]">
                         <div className=" flex gap-2  items-center leading-3 px-3">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -418,8 +471,17 @@ console.log("Bill me daal na h ye data ",response.data)
                             </g>
                           </svg>
                           <span className=" font-semibold">
-                            Table:{val.tablename ? val.tablename : "No"}
+                            Table:
+                            {val.tablename ? val.tablename : "No table found"}
                           </span>
+                          <input
+                            type="checkbox"
+                            onChange={() => handleCheckboxMerge(val)}
+                            className="size-5 custom-checkbox"
+                            checked={selectedOrders.some(
+                              (order) => order.order_id === val.order_id
+                            )}
+                          />
                         </div>
 
                         <div className="  px-3 font-semibold">
@@ -428,20 +490,32 @@ console.log("Bill me daal na h ye data ",response.data)
                             Waiter:{" "}
                             {val.waiter_first_name && val.waiter_last_name
                               ? `${val.waiter_first_name} ${val.waiter_last_name}`
-                              : "No"}
+                              : "No Waiter Found"}
                           </h2>
                         </div>
                         {val.bill_status !== 1 && (
-                          <button
-                            onClick={() => {
-                              showPaynment(val.order_id);
-                            }}
-                            className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
-                          >
-                            <IoMdCheckmarkCircleOutline />
+                          <div className=" flex gap-x-2">
+                            <button
+                              onClick={() => {
+                                showPaynment(val.order_id);
+                              }}
+                              className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
+                            >
+                              <IoMdCheckmarkCircleOutline />
 
-                            <span className="text-[#fff]"> Make Payment</span>
-                          </button>
+                              <span className="text-[#fff]"> Make Payment</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                showShplitData(val.order_id);
+                              }}
+                              className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
+                            >
+                              <PiSplitHorizontalBold />
+
+                              <span className="text-[#fff]">Split</span>
+                            </button>
+                          </div>
                         )}
 
                         <div className=" flex justify-evenly overflow-hidden">
@@ -487,211 +561,285 @@ console.log("Bill me daal na h ye data ",response.data)
         </section>
       </div>
 
-
-
-{/*  Booked Table */}
-<DialogBox
-  title={"View Booked Tables"}
-  isOpen={cModal5}
-  onClose={() => setCmodal5(false)}
->
-  <div className="mt-2">
-    <div className="p-5 h-[700px]  overflow-y-scroll items-center">
-      <div className="flex flex-wrap gap-x-6 gap-y-4 ">
-        {bookTableData.length > 0 ? (
-          bookTableData.map((val, index) => (
-            <div
-              key={val.tableid}
-              className="border-[#4CBBA1] border-[1px] w-auto rounded-md"
-            >
-              <div className="flex justify-between items-center gap-x-4 p-2">
-                <div>
-                  <div className="flex flex-row items-center gap-x-5 mb-3 justify-between">
-                    <div className="image w-[50px] h-[50px]">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 48 48"
-                      >
-                        <title>Dining Table</title>
-                        <g id="Dining_Table" data-name="Dining Table">
-                          <path
-                            d="M28.555,39.7,26.445,38.3A1,1,0,0,1,26,37.465V25H22V37.465a1,1,0,0,1-.445.832L19.445,39.7a1,1,0,0,0-.445.832V41a1,1,0,0,0,1,1h8a1,1,0,0,0,1-1v-.465A1,1,0,0,0,28.555,39.7Z"
-                            id="id_101"
-                            style={{ fill: "rgb(76, 187, 161)" }}
-                          ></path>
-                          <rect
-                            x="9"
-                            y="19"
-                            width="29"
-                            height="4"
-                            rx="1"
-                            id="id_102"
-                          ></rect>
-                          <path
-                            d="M25,9.054V8h1a1,1,0,0,0,0-2H22a1,1,0,0,0,0,2h1V9.054A10.019,10.019,0,0,0,14.2,17H33.8A10.019,10.019,0,0,0,25,9.054Zm-2.3,4.087a6.026,6.026,0,0,0-3.462,2.205,1,1,0,0,1-1.588-1.217,8.036,8.036,0,0,1,4.617-2.941,1,1,0,1,1,.433,1.953Z"
-                            id="id_103"
-                          ></path>
-                          <path
-                            d="M47.5,16.679a1.994,1.994,0,0,0-1.5-.679H44.921A2,2,0,0,0,43,17.481l-2.587,9.662H34.244a2.99,2.99,0,0,0-2.894,2.25L31.065,30.5h0A2,2,0,0,0,33,33h.069l-1.931,7.758a1,1,0,0,0,.73,1.212.961.961,0,0,0,.242.03,1,1,0,0,0,.97-.758L35.127,33H42.3l1.826,8.217A1,1,0,0,0,45.1,42a1.018,1.018,0,0,0,.218-.024,1,1,0,0,0,.76-1.193l-1.764-7.936A3,3,0,0,0,46.375,30.4l1.608-12.132A2.005,2.005,0,0,0,47.5,16.679Z"
-                            id="id_104"
-                          ></path>
-                          <path
-                            d="M16.58,32.227a1.993,1.993,0,0,0,.357-1.727h0l-.286-1.106a2.988,2.988,0,0,0-2.893-2.25H7.593L5.006,17.481A2,2,0,0,0,3.08,16H1.994A2,2,0,0,0,.018,18.264L1.626,30.4a3,3,0,0,0,2.057,2.451L1.919,40.783a1,1,0,0,0,1.953.434L5.7,33h7.176l2.051,8.242A1,1,0,0,0,15.9,42a.961.961,0,0,0,.242-.03,1,1,0,0,0,.729-1.212L14.935,33h.07A1.981,1.981,0,0,0,16.58,32.227Z"
-                            id="id_105"
-                          ></path>
-                        </g>
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="w-[200px]">
-                    <div className="flex">
-                      <h1 className="text-nowrap w-28">Table Name:</h1>
-                      <h1 className="text-nowrap">{val.tablename}</h1>
-                    </div>
-                    <div className="flex">
-                      <h1 className="text-nowrap w-28">Seat:</h1>
-                      <h1 className="text-nowrap">
-                        {val.person_capicity}
-                      </h1>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {val.status === 1 ? (
-                <div className="w-full text-center py-3 px-4">
-                  <button
-                    className="bg-[#bb4c4c] w-full text-[#fff] rounded-md cursor-none p-4"
+      {/*  Booked Table */}
+      <DialogBox
+        title={"View Booked Tables"}
+        isOpen={cModal5}
+        onClose={() => setCmodal5(false)}
+      >
+        <div className="mt-2">
+          <div className="p-5 h-[700px]  overflow-y-scroll items-center">
+            <div className="flex flex-wrap gap-x-6 gap-y-4 ">
+              {bookTableData.length > 0 ? (
+                bookTableData.map((val, index) => (
+                  <div
+                    key={val.tableid}
+                    className="border-[#4CBBA1] border-[1px] w-auto rounded-md"
                   >
-                    Reserved
-                  </button>
-                </div>
+                    <div className="flex justify-between items-center gap-x-4 p-2">
+                      <div>
+                        <div className="flex flex-row items-center gap-x-5 mb-3 justify-between">
+                          <div className="image w-[50px] h-[50px]">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 48 48"
+                            >
+                              <title>Dining Table</title>
+                              <g id="Dining_Table" data-name="Dining Table">
+                                <path
+                                  d="M28.555,39.7,26.445,38.3A1,1,0,0,1,26,37.465V25H22V37.465a1,1,0,0,1-.445.832L19.445,39.7a1,1,0,0,0-.445.832V41a1,1,0,0,0,1,1h8a1,1,0,0,0,1-1v-.465A1,1,0,0,0,28.555,39.7Z"
+                                  id="id_101"
+                                  style={{ fill: "rgb(76, 187, 161)" }}
+                                ></path>
+                                <rect
+                                  x="9"
+                                  y="19"
+                                  width="29"
+                                  height="4"
+                                  rx="1"
+                                  id="id_102"
+                                ></rect>
+                                <path
+                                  d="M25,9.054V8h1a1,1,0,0,0,0-2H22a1,1,0,0,0,0,2h1V9.054A10.019,10.019,0,0,0,14.2,17H33.8A10.019,10.019,0,0,0,25,9.054Zm-2.3,4.087a6.026,6.026,0,0,0-3.462,2.205,1,1,0,0,1-1.588-1.217,8.036,8.036,0,0,1,4.617-2.941,1,1,0,1,1,.433,1.953Z"
+                                  id="id_103"
+                                ></path>
+                                <path
+                                  d="M47.5,16.679a1.994,1.994,0,0,0-1.5-.679H44.921A2,2,0,0,0,43,17.481l-2.587,9.662H34.244a2.99,2.99,0,0,0-2.894,2.25L31.065,30.5h0A2,2,0,0,0,33,33h.069l-1.931,7.758a1,1,0,0,0,.73,1.212.961.961,0,0,0,.242.03,1,1,0,0,0,.97-.758L35.127,33H42.3l1.826,8.217A1,1,0,0,0,45.1,42a1.018,1.018,0,0,0,.218-.024,1,1,0,0,0,.76-1.193l-1.764-7.936A3,3,0,0,0,46.375,30.4l1.608-12.132A2.005,2.005,0,0,0,47.5,16.679Z"
+                                  id="id_104"
+                                ></path>
+                                <path
+                                  d="M16.58,32.227a1.993,1.993,0,0,0,.357-1.727h0l-.286-1.106a2.988,2.988,0,0,0-2.893-2.25H7.593L5.006,17.481A2,2,0,0,0,3.08,16H1.994A2,2,0,0,0,.018,18.264L1.626,30.4a3,3,0,0,0,2.057,2.451L1.919,40.783a1,1,0,0,0,1.953.434L5.7,33h7.176l2.051,8.242A1,1,0,0,0,15.9,42a.961.961,0,0,0,.242-.03,1,1,0,0,0,.729-1.212L14.935,33h.07A1.981,1.981,0,0,0,16.58,32.227Z"
+                                  id="id_105"
+                                ></path>
+                              </g>
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="w-[200px]">
+                          <div className="flex">
+                            <h1 className="text-nowrap w-28">Table Name:</h1>
+                            <h1 className="text-nowrap">{val.tablename}</h1>
+                          </div>
+                          <div className="flex">
+                            <h1 className="text-nowrap w-28">Seat:</h1>
+                            <h1 className="text-nowrap">
+                              {val.person_capicity}
+                            </h1>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {val.status === 1 ? (
+                      <div className="w-full text-center py-3 px-4">
+                        <button className="bg-[#bb4c4c] w-full text-[#fff] rounded-md cursor-none p-4">
+                          Reserved
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full text-center py-3 px-4">
+                        <button className="bg-[#4cbbb2] w-full text-[#fff] rounded-md cursor-none p-4">
+                          Unbooked
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
               ) : (
-                <div className="w-full text-center py-3 px-4">
-                  <button
-                    className="bg-[#4cbbb2] w-full text-[#fff] rounded-md cursor-none p-4"
-                  >
-                    Unbooked
-                  </button>
+                <div className="w-full text-center py-10">
+                  <h1 className="text-[#bb4c4c] text-lg">No Tables Booked</h1>
                 </div>
               )}
             </div>
-          ))
-        ) : (
-          <div className="w-full text-center py-10">
-            <h1 className="text-[#bb4c4c] text-lg">No Tables Booked</h1>
           </div>
-        )}
-      </div>
-    </div>
-  </div>
-</DialogBox>
+        </div>
+      </DialogBox>
 
+      {/* UnBooked Table */}
 
-
-
-{/* UnBooked Table */}
-
-<DialogBox
-  title={"View Unbooked Tables"}
-  isOpen={cModal4}
-  onClose={() => setCmodal4(false)}
->
-  <div className="mt-2">
-    <div className="p-5 h-[700px] overflow-y-scroll">
-      <div className="flex flex-wrap gap-6">
-        {ubookedData.length > 0 ? (
-          ubookedData.map((val, index) => (
-            <div
-              key={val.tableid}
-              className="border-[#4CBBA1] border-[1px] w-auto rounded-md"
-            >
-              <div className="flex justify-between items-center gap-x-4 p-2">
-                <div>
-                  <div className="flex flex-row items-center gap-x-5 mb-3 justify-between">
-                    <div className="image w-[50px] h-[50px]">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 48 48"
-                      >
-                        <title>Dining Table</title>
-                        <g id="Dining_Table" data-name="Dining Table">
-                          <path
-                            d="M28.555,39.7,26.445,38.3A1,1,0,0,1,26,37.465V25H22V37.465a1,1,0,0,1-.445.832L19.445,39.7a1,1,0,0,0-.445.832V41a1,1,0,0,0,1,1h8a1,1,0,0,0,1-1v-.465A1,1,0,0,0,28.555,39.7Z"
-                            id="id_101"
-                            style={{ fill: "rgb(76, 187, 161)" }}
-                          ></path>
-                          <rect
-                            x="9"
-                            y="19"
-                            width="29"
-                            height="4"
-                            rx="1"
-                            id="id_102"
-                          ></rect>
-                          <path
-                            d="M25,9.054V8h1a1,1,0,0,0,0-2H22a1,1,0,0,0,0,2h1V9.054A10.019,10.019,0,0,0,14.2,17H33.8A10.019,10.019,0,0,0,25,9.054Zm-2.3,4.087a6.026,6.026,0,0,0-3.462,2.205,1,1,0,0,1-1.588-1.217,8.036,8.036,0,0,1,4.617-2.941,1,1,0,1,1,.433,1.953Z"
-                            id="id_103"
-                          ></path>
-                          <path
-                            d="M47.5,16.679a1.994,1.994,0,0,0-1.5-.679H44.921A2,2,0,0,0,43,17.481l-2.587,9.662H34.244a2.99,2.99,0,0,0-2.894,2.25L31.065,30.5h0A2,2,0,0,0,33,33h.069l-1.931,7.758a1,1,0,0,0,.73,1.212.961.961,0,0,0,.242.03,1,1,0,0,0,.97-.758L35.127,33H42.3l1.826,8.217A1,1,0,0,0,45.1,42a1.018,1.018,0,0,0,.218-.024,1,1,0,0,0,.76-1.193l-1.764-7.936A3,3,0,0,0,46.375,30.4l1.608-12.132A2.005,2.005,0,0,0,47.5,16.679Z"
-                            id="id_104"
-                          ></path>
-                          <path
-                            d="M16.58,32.227a1.993,1.993,0,0,0,.357-1.727h0l-.286-1.106a2.988,2.988,0,0,0-2.893-2.25H7.593L5.006,17.481A2,2,0,0,0,3.08,16H1.994A2,2,0,0,0,.018,18.264L1.626,30.4a3,3,0,0,0,2.057,2.451L1.919,40.783a1,1,0,0,0,1.953.434L5.7,33h7.176l2.051,8.242A1,1,0,0,0,15.9,42a.961.961,0,0,0,.242-.03,1,1,0,0,0,.729-1.212L14.935,33h.07A1.981,1.981,0,0,0,16.58,32.227Z"
-                            id="id_105"
-                          ></path>
-                        </g>
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="w-[200px]">
-                    <div className="flex">
-                      <h1 className="text-nowrap w-28">Table Name:</h1>
-                      <h1 className="text-nowrap">{val.tablename}</h1>
-                    </div>
-                    <div className="flex">
-                      <h1 className="text-nowrap w-28">Seat:</h1>
-                      <h1 className="text-nowrap">
-                        {val.person_capicity}
-                      </h1>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {val.status === 1 ? (
-                <div className="w-full text-center py-3 px-4">
-                  <button
-                    className="bg-[#bb4c4c] w-full text-[#fff] rounded-md cursor-none p-4"
+      <DialogBox
+        title={"View Unbooked Tables"}
+        isOpen={cModal4}
+        onClose={() => setCmodal4(false)}
+      >
+        <div className="mt-2">
+          <div className="p-5 h-[700px] overflow-y-scroll">
+            <div className="flex flex-wrap gap-6">
+              {ubookedData.length > 0 ? (
+                ubookedData.map((val, index) => (
+                  <div
+                    key={val.tableid}
+                    className="border-[#4CBBA1] border-[1px] w-auto rounded-md"
                   >
-                    Reserved
-                  </button>
-                </div>
+                    <div className="flex justify-between items-center gap-x-4 p-2">
+                      <div>
+                        <div className="flex flex-row items-center gap-x-5 mb-3 justify-between">
+                          <div className="image w-[50px] h-[50px]">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 48 48"
+                            >
+                              <title>Dining Table</title>
+                              <g id="Dining_Table" data-name="Dining Table">
+                                <path
+                                  d="M28.555,39.7,26.445,38.3A1,1,0,0,1,26,37.465V25H22V37.465a1,1,0,0,1-.445.832L19.445,39.7a1,1,0,0,0-.445.832V41a1,1,0,0,0,1,1h8a1,1,0,0,0,1-1v-.465A1,1,0,0,0,28.555,39.7Z"
+                                  id="id_101"
+                                  style={{ fill: "rgb(76, 187, 161)" }}
+                                ></path>
+                                <rect
+                                  x="9"
+                                  y="19"
+                                  width="29"
+                                  height="4"
+                                  rx="1"
+                                  id="id_102"
+                                ></rect>
+                                <path
+                                  d="M25,9.054V8h1a1,1,0,0,0,0-2H22a1,1,0,0,0,0,2h1V9.054A10.019,10.019,0,0,0,14.2,17H33.8A10.019,10.019,0,0,0,25,9.054Zm-2.3,4.087a6.026,6.026,0,0,0-3.462,2.205,1,1,0,0,1-1.588-1.217,8.036,8.036,0,0,1,4.617-2.941,1,1,0,1,1,.433,1.953Z"
+                                  id="id_103"
+                                ></path>
+                                <path
+                                  d="M47.5,16.679a1.994,1.994,0,0,0-1.5-.679H44.921A2,2,0,0,0,43,17.481l-2.587,9.662H34.244a2.99,2.99,0,0,0-2.894,2.25L31.065,30.5h0A2,2,0,0,0,33,33h.069l-1.931,7.758a1,1,0,0,0,.73,1.212.961.961,0,0,0,.242.03,1,1,0,0,0,.97-.758L35.127,33H42.3l1.826,8.217A1,1,0,0,0,45.1,42a1.018,1.018,0,0,0,.218-.024,1,1,0,0,0,.76-1.193l-1.764-7.936A3,3,0,0,0,46.375,30.4l1.608-12.132A2.005,2.005,0,0,0,47.5,16.679Z"
+                                  id="id_104"
+                                ></path>
+                                <path
+                                  d="M16.58,32.227a1.993,1.993,0,0,0,.357-1.727h0l-.286-1.106a2.988,2.988,0,0,0-2.893-2.25H7.593L5.006,17.481A2,2,0,0,0,3.08,16H1.994A2,2,0,0,0,.018,18.264L1.626,30.4a3,3,0,0,0,2.057,2.451L1.919,40.783a1,1,0,0,0,1.953.434L5.7,33h7.176l2.051,8.242A1,1,0,0,0,15.9,42a.961.961,0,0,0,.242-.03,1,1,0,0,0,.729-1.212L14.935,33h.07A1.981,1.981,0,0,0,16.58,32.227Z"
+                                  id="id_105"
+                                ></path>
+                              </g>
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="w-[200px]">
+                          <div className="flex">
+                            <h1 className="text-nowrap w-28">Table Name:</h1>
+                            <h1 className="text-nowrap">{val.tablename}</h1>
+                          </div>
+                          <div className="flex">
+                            <h1 className="text-nowrap w-28">Seat:</h1>
+                            <h1 className="text-nowrap">
+                              {val.person_capicity}
+                            </h1>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {val.status === 1 ? (
+                      <div className="w-full text-center py-3 px-4">
+                        <button className="bg-[#bb4c4c] w-full text-[#fff] rounded-md cursor-none p-4">
+                          Reserved
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full text-center py-3 px-4">
+                        <button className="bg-[#4cbbb2] w-full text-[#fff] rounded-md cursor-none p-4">
+                          Unbooked
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
               ) : (
-                <div className="w-full text-center py-3 px-4">
-                  <button
-                    className="bg-[#4cbbb2] w-full text-[#fff] rounded-md cursor-none p-4"
-                  >
-                    Unbooked
-                  </button>
+                <div className="w-full text-center py-10">
+                  <h1 className="text-[#bb4c4c] text-lg">No Tables Booked</h1>
                 </div>
               )}
             </div>
-          ))
-        ) : (
-          <div className="w-full text-center py-10">
-            <h1 className="text-[#bb4c4c] text-lg">No Tables Booked</h1>
           </div>
-        )}
-      </div>
-    </div>
-  </div>
-</DialogBox>
+        </div>
+      </DialogBox>
 
+      <SplitModal
+        title="Split Bill for Menu Items"
+        isOpen={splitModal}
+        onClose={() => setSplitModal(false)}
+      >
+        <div>
+          {splitData && splitData.length > 0 ? (
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Menu Items</h2>
+              <ul className="space-y-4">
+                {splitData.map((item) => (
+                  <li
+                    key={item.row_id}
+                    className="flex items-center justify-between gap-x-5 p-2 border-[1px] border-[#79d49f] rounded-md shadow-sm"
+                  >
+                    <label className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        onChange={() => handleCheckboxChange(item)}
+                        className="size-5 custom-checkbox "
+                      />
+                      <span className="text-gray-700">{item.ProductName}</span>
+                    </label>
+                    <div className="flex items-center space-x-6">
+                      <span>Quantity: {item.menuqty}</span>
+                      <span>Price: {parseFloat(item.price).toFixed(2)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-gray-500">No menu items available.</p>
+          )}
+        </div>
+        <div>
+          {/* Selected Items Section */}
+          <div>
+            <h3 className="text-lg font-bold">Selected Items</h3>
+            <ul>
+              {selectedItems.map((item) => (
+                <li
+                  key={item.row_id}
+                  className="flex justify-between border p-2"
+                >
+                  <span>{item.ProductName}</span>
+                  <span>Qty: {item.menuqty}</span>
+                  <span>Price: {parseFloat(item.price).toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+            <div>
+              <strong>Total: </strong>
+              {selectedItems
+                .reduce(
+                  (acc, item) => acc + item.menuqty * parseFloat(item.price),
+                  0
+                )
+                .toFixed(2)}
+            </div>
+            <button className="btn btn-primary">Pay for Selected Items</button>
+          </div>
 
-
-
+          {/* Remaining Items Section */}
+          <div>
+            <h3 className="text-lg font-bold">Remaining Items</h3>
+            <ul>
+              {remainingItems.map((item) => (
+                <li
+                  key={item.row_id}
+                  className="flex justify-between border p-2"
+                >
+                  <span>{item.ProductName}</span>
+                  <span>Qty: {item.menuqty}</span>
+                  <span>Price: {item.price}</span>
+                </li>
+              ))}
+            </ul>
+            <div>
+              <strong>Total: </strong>
+              {remainingItems
+                .reduce(
+                  (acc, item) => acc + item.menuqty * parseFloat(item.price),
+                  0
+                )
+                .toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </SplitModal>
 
       <PaynmentDialogBox
         refreshOrderList={refreshOrderList}
@@ -700,6 +848,13 @@ console.log("Bill me daal na h ye data ",response.data)
         paymentData={[paymentData]}
         paymentMethod={paymentMethod}
       ></PaynmentDialogBox>
+
+      <SplitPaynmentModal
+        isOpen={mergepaynmentModal}
+        onClose={() => setMergePaynmentModal(false)}
+        paymentData={[selectedOrders]}
+        paymentMethod={paymentMethod}
+      ></SplitPaynmentModal>
 
       <InvoiceDialogBox
         isOpen={invoiceDataModal}

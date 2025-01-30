@@ -1,4 +1,6 @@
 const db = require("../utils/db");
+const jwt = require("jsonwebtoken");
+const nodemailer=require('nodemailer')
 const dbQuery = (query, values) => {
     return new Promise((resolve, reject) => {
       db.pool.query(query, values, (err, result) => {
@@ -14,6 +16,58 @@ const dbQuery = (query, values) => {
 
   const bcrypt = require('bcryptjs');
   const saltRounds = 10; // You can increase this value for more security
+
+  // const loginCustomer = async (req, res) => {
+  //   try {
+  //     const { customer_email, password } = req.body;
+  
+  //     console.log("email", customer_email, password);
+  //     // Check if email exists in the database
+  //     const findCustomerQuery = `SELECT * FROM customer_info WHERE customer_email = ?`;
+  //     db.pool.query(findCustomerQuery, [customer_email], async (err, results) => {
+  //       if (err) {
+  //         console.error("Database Error:", err);
+  //         return res
+  //           .status(500)
+  //           .json({ success: false, message: "An error occurred" });
+  //       }
+  
+  //       // If no user is found
+  //       if (results.length === 0) {
+  //         return res
+  //           .status(404)
+  //           .json({ success: false, message: "User not found" });
+  //       }
+  
+  //       const customer = results[0];
+  
+  //       // Compare the provided password with the stored hashed password
+  //       const isPasswordValid = await bcrypt.compare(password, customer.password);
+  //       if (!isPasswordValid) {
+  //         return res
+  //           .status(401)
+  //           .json({ success: false, message: "Invalid credentials" });
+  //       }
+  
+  //       // On successful login
+  //       return res.status(200).json({
+  //         success: true,
+  //         message: "Login successful",
+  //         data: {
+  //           customer_id: customer.customer_id,
+  //           customer_name: customer.customer_name,
+  //           customer_email: customer.customer_email,
+  //           customer_address:customer.customer_address,
+  //           customer_picture:customer.customer_picture,
+  //           customer_phone:customer.customer_phone,
+  //         },
+  //       });
+  //     });
+  //   } catch (error) {
+  //     console.error("Server Error:", error);
+  //     res.status(500).json({ success: false, message: "An error occurred" });
+  //   }
+  // };
 
   const loginCustomer = async (req, res) => {
     try {
@@ -38,7 +92,13 @@ const dbQuery = (query, values) => {
         }
   
         const customer = results[0];
-  
+  const payload = {
+                id: customer.customer_id,
+                email: customer.customer_email,
+              };
+    
+              const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '3600s' });
+              console.log(token,"customer")
         // Compare the provided password with the stored hashed password
         const isPasswordValid = await bcrypt.compare(password, customer.password);
         if (!isPasswordValid) {
@@ -58,6 +118,7 @@ const dbQuery = (query, values) => {
             customer_address:customer.customer_address,
             customer_picture:customer.customer_picture,
             customer_phone:customer.customer_phone,
+            token:token
           },
         });
       });
@@ -66,8 +127,6 @@ const dbQuery = (query, values) => {
       res.status(500).json({ success: false, message: "An error occurred" });
     }
   };
-
-
   const newCreateCustomer = async (req, res) => {
     try {
       const {
@@ -686,6 +745,76 @@ const getWebOrderById = async (req, res) => {
     });
   }
 };
+const getInTouch = async (req, res) => {
+  const { firstname, lastname, phone, email_address, message } = req.body;
+
+  if (!firstname || !lastname || !phone || !email_address || !message) {
+    return res.status(400).json({ message: 'All fields are required.' });
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: "akashlakshkar.sunshine@gmail.com",
+      pass: "xfhy fwee blja dibp",
+    },
+  });
+
+  const mailOptions = {
+    from: 'your_email@gmail.com',
+    to:`${email_address}`,
+    subject: 'New Get in Touch Submission',
+  html: `
+   <div style="font-family: 'Roboto', Arial, sans-serif; line-height: 1.6; color: #444; max-width: 650px; margin: 20px auto; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background: linear-gradient(135deg, #ffffff, #f7f7f7);">
+  <h1 style="text-align: center; color: #007BFF; font-size: 28px; margin-bottom: 10px;">📧 New Contact Submission</h1>
+  <p style="text-align: center; font-size: 16px; margin-bottom: 30px; color: #666;">You’ve received a new message through the <strong>Get in Touch</strong> form.</p>
+  
+  <div style="background-color: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+    <table style="width: 100%; border-collapse: collapse; margin: 0 auto; font-size: 15px;">
+      <tr>
+        <td style="padding: 10px; font-weight: bold; border-bottom: 1px solid #ddd; width: 40%; color: #555;">📝 First Name:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; color: #333;">${firstname}</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; font-weight: bold; border-bottom: 1px solid #ddd; color: #555;">📝 Last Name:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; color: #333;">${lastname}</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; font-weight: bold; border-bottom: 1px solid #ddd; color: #555;">📞 Phone:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; color: #333;">${phone}</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; font-weight: bold; border-bottom: 1px solid #ddd; color: #555;">📧 Email Address:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; color: #333;">${email_address}</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; font-weight: bold; color: #555;">💬 Comments:</td>
+        <td style="padding: 10px; color: #333;">${message}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <p style="margin-top: 30px; text-align: center; font-size: 14px; color: #888; font-style: italic;">
+    This email was automatically generated. Please do not reply to this message.
+  </p>
+</div>
+
+  `,
+
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully');
+    res.status(200).json({ message: 'Your message has been sent successfully.' });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ message: 'An error occurred while sending your message.', error: error.message });
+  }
+};
+
+
+
   module.exports={
     loginCustomer,
     newCreateCustomer,
@@ -694,5 +823,6 @@ const getWebOrderById = async (req, res) => {
     getReservationById,
     createReservationNew,
     weborderPlace,
-    getWebOrderById
+    getWebOrderById,
+    getInTouch
   }

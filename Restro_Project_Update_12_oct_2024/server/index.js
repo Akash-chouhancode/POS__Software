@@ -33,6 +33,7 @@ const holdorderRouts=require("./router/holdOrderRoute")
 const webuserRouts=require("./router/webUserRoute")
 const shippingRoute=require("./router/shippingTypeRoute")
 const pointRoute=require("./router/loyaltyRoute")
+const splitorderRoute=require("./router/splitOrderRouts")
 const app = express();
 
 // Middleware
@@ -75,6 +76,7 @@ app.use("/api",holdorderRouts)
 app.use("/api",webuserRouts)
 app.use("/api",shippingRoute)
 app.use("/api",pointRoute)
+app.use("/api",splitorderRoute)
 //Catch-all route to serve the React app for any other routes
 // app.get('*', (req, res) => {
 //   res.sendFile(path.join(__dirname, 'frontend', 'index.html'));

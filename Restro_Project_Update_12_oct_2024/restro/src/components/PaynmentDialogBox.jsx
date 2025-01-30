@@ -71,7 +71,7 @@ const PaymentDialogBox = ({
       order_id,
       discount: discount,
     };
-    console.log("hefhjdhhasdvahfv", formData);
+
     axios
       .post(`${API_BASE_URL}/makePayment/${order_id}`, formData)
       .then((response) => {
