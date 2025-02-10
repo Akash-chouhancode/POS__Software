@@ -1,32 +1,27 @@
 const db = require("../utils/db");
 
-
 const createIngredient = async (req, res) => {
   try {
     const { ingredient_name, uom_short_code, min_stock, status } = req.body;
 
- 
-   
-
-      // Query to create a new ingredient with is_active set to 1 by default
-      const createIngredientQuery = `
+    // Query to create a new ingredient with is_active set to 1 by default
+    const createIngredientQuery = `
           INSERT INTO ingredients (ingredient_name, uom_id, min_stock, status, is_active)
           VALUES (?, ?, ?, ?, 1)
         `;
-      const values = [ingredient_name, uom_short_code, min_stock, status];
+    const values = [ingredient_name, uom_short_code, min_stock, status];
 
-      db.pool.query(createIngredientQuery, values, (err, result) => {
-        if (err) {
-          console.error("Error while creating ingredient:", err);
-          return res
-            .status(500)
-            .json({ success: false, message: "An error occurred" });
-        }
-        res
-          .status(200)
-          .json({ success: true, message: "Ingredient created successfully" });
-      });
-   
+    db.pool.query(createIngredientQuery, values, (err, result) => {
+      if (err) {
+        console.error("Error while creating ingredient:", err);
+        return res
+          .status(500)
+          .json({ success: false, message: "An error occurred" });
+      }
+      res
+        .status(200)
+        .json({ success: true, message: "Ingredient created successfully" });
+    });
   } catch (error) {
     console.error("An unexpected error occurred:", error);
     res
@@ -35,10 +30,9 @@ const createIngredient = async (req, res) => {
   }
 };
 
-
 const getAllIngredients = async (req, res) => {
   const { searchItem } = req.query;
-  
+
   try {
     let getAllIngredientsQuery;
     let queryParams = [];
@@ -67,30 +61,39 @@ const getAllIngredients = async (req, res) => {
     // Execute the query
     db.pool.query(getAllIngredientsQuery, queryParams, (err, results) => {
       if (err) {
-        console.error('Error while retrieving ingredients:', err);
-        return res.status(500).json({ success: false, message: 'An error occurred while retrieving ingredients' });
+        console.error("Error while retrieving ingredients:", err);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "An error occurred while retrieving ingredients",
+          });
       }
 
       if (results.length === 0) {
-        return res.status(404).json({ success: false, message: 'No ingredients found' });
+        return res
+          .status(404)
+          .json({ success: false, message: "No ingredients found" });
       }
 
       res.status(200).json({ success: true, data: results });
     });
   } catch (error) {
-    console.error('An unexpected error occurred:', error);
-    res.status(500).json({ success: false, message: 'An unexpected error occurred' });
+    console.error("An unexpected error occurred:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "An unexpected error occurred" });
   }
 };
-
-
 
 const getIngredientById = async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({ success: false, message: 'ID parameter is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "ID parameter is required" });
     }
 
     // Query to get ingredient by ID with uom_short_code
@@ -103,85 +106,107 @@ const getIngredientById = async (req, res) => {
 
     db.pool.query(getIngredientByIdQuery, [id], (err, result) => {
       if (err) {
-        console.error('Error while retrieving the ingredient:', err);
-        return res.status(500).json({ success: false, message: 'An error occurred while retrieving the ingredient' });
+        console.error("Error while retrieving the ingredient:", err);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "An error occurred while retrieving the ingredient",
+          });
       }
 
       if (result.length === 0) {
-        return res.status(404).json({ success: false, message: 'Ingredient not found' });
+        return res
+          .status(404)
+          .json({ success: false, message: "Ingredient not found" });
       }
 
       res.status(200).json({ success: true, data: result[0] });
     });
   } catch (error) {
-    console.error('An unexpected error occurred:', error);
-    res.status(500).json({ success: false, message: 'An unexpected error occurred' });
+    console.error("An unexpected error occurred:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "An unexpected error occurred" });
   }
 };
 
-
 const updateIngredient = async (req, res) => {
   const { id } = req.params;
-  console.log(id)
-;
-  const { ingredient_name, uom_id, min_stock, is_active} = req.body;
- 
+  console.log(id);
+  const { ingredient_name, uom_id, min_stock, is_active } = req.body;
+
   // Query to get the current ingredient details
-  const query = 'SELECT * FROM ingredients WHERE id = ?';
+  const query = "SELECT * FROM ingredients WHERE id = ?";
   db.pool.query(query, [id], (err, results) => {
     if (err) {
-      console.error('Error while retrieving ingredient:', err);
-      return res.status(500).json({ success: false, message: 'An error occurred while retrieving the ingredient record' });
+      console.error("Error while retrieving ingredient:", err);
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message: "An error occurred while retrieving the ingredient record",
+        });
     }
 
     if (results.length === 0) {
-      return res.status(404).json({ success: false, message: 'Ingredient not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Ingredient not found" });
     }
 
     const currentData = results[0];
 
-   
+    // Prepare updated data by checking for undefined values
+    const updateData = {
+      ingredient_name:
+        ingredient_name !== undefined
+          ? ingredient_name
+          : currentData.ingredient_name,
+      uom_id: uom_id !== undefined ? uom_id : currentData.uom_id,
+      min_stock: min_stock !== undefined ? min_stock : currentData.min_stock,
 
-      // Prepare updated data by checking for undefined values
-      const updateData = {
-        ingredient_name: ingredient_name !== undefined ? ingredient_name : currentData.ingredient_name,
-        uom_id: uom_id !== undefined ? uom_id : currentData.uom_id,
-        min_stock: min_stock !== undefined ? min_stock : currentData.min_stock,
-     
-        is_active: is_active!==undefined?is_active:currentData.is_active 
-      };
+      is_active: is_active !== undefined ? is_active : currentData.is_active,
+    };
 
-      // Query to update the ingredient
-      const updateIngredientQuery = `
+    // Query to update the ingredient
+    const updateIngredientQuery = `
         UPDATE ingredients 
         SET ingredient_name = ?, uom_id = ?, min_stock = ?, is_active = ? 
         WHERE id = ?
       `;
-      const values = [
-        updateData.ingredient_name,
-        updateData.uom_id,
-        updateData.min_stock,
-      
-        updateData.is_active,
-        id
-      ];
+    const values = [
+      updateData.ingredient_name,
+      updateData.uom_id,
+      updateData.min_stock,
 
-      db.pool.query(updateIngredientQuery, values, (err, result) => {
-        if (err) {
-          console.error('Error while updating ingredient:', err);
-          return res.status(500).json({ success: false, message: 'An error occurred while updating the ingredient' });
-        }
+      updateData.is_active,
+      id,
+    ];
 
-        if (result.affectedRows === 0) {
-          return res.status(404).json({ success: false, message: 'Ingredient not found' });
-        }
+    db.pool.query(updateIngredientQuery, values, (err, result) => {
+      if (err) {
+        console.error("Error while updating ingredient:", err);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "An error occurred while updating the ingredient",
+          });
+      }
 
-        return res.status(200).json({ success: true, message: 'Ingredient updated successfully' });
-      });
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Ingredient not found" });
+      }
+
+      return res
+        .status(200)
+        .json({ success: true, message: "Ingredient updated successfully" });
     });
-  }
-
-
+  });
+};
 
 const deleteIngredient = async (req, res) => {
   try {
@@ -195,21 +220,78 @@ const deleteIngredient = async (req, res) => {
 
     db.pool.query(deleteIngredientQuery, [id], (err, result) => {
       if (err) {
-        console.error('Error while deleting ingredient:', err);
-        return res.status(500).json({ success: false, message: 'An error occurred while deleting ingredient' });
+        console.error("Error while deleting ingredient:", err);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "An error occurred while deleting ingredient",
+          });
       }
 
       // Check if any rows were affected; if none, return 404
       if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Ingredient not found or no changes applied' });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message: "Ingredient not found or no changes applied",
+          });
       }
 
-      res.status(200).json({ success: true, message: 'Ingredient deleted successfully' });
+      res
+        .status(200)
+        .json({ success: true, message: "Ingredient deleted successfully" });
     });
   } catch (error) {
-    console.error('An unexpected error occurred:', error);
-    res.status(500).json({ success: false, message: 'An unexpected error occurred' });
+    console.error("An unexpected error occurred:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "An unexpected error occurred" });
   }
 };
 
-module.exports = { createIngredient, getAllIngredients, deleteIngredient,getIngredientById,updateIngredient };
+const getIngredientsDetails = async (req, res) => {
+  try {
+      const { searchItem } = req.query;
+      let query = `
+          SELECT 
+              i.id AS ingredient_id, 
+              i.ingredient_name, 
+              i.uom_id, 
+              uom.uom_name, 
+              i.stock_qty, 
+              i.min_stock, 
+              i.status, 
+              i.is_active 
+          FROM ingredients i 
+          LEFT JOIN unit_of_measurement uom ON i.uom_id = uom.id 
+          WHERE i.is_active = 1
+      `;
+
+      let queryParams = [];
+
+      if (searchItem && searchItem.trim() !== "") {
+          query += ` AND (i.ingredient_name LIKE ? OR uom.uom_name LIKE ? OR i.stock_qty LIKE ? OR i.min_stock LIKE ?)`;
+          const searchQuery = `%${searchItem}%`;
+          queryParams.push(searchQuery, searchQuery,searchQuery,searchQuery);
+      }
+
+      query += ` ORDER BY i.id DESC`;
+
+      const [results] = await db.pool.promise().query(query, queryParams);
+      res.json({ success: true, data: results });
+  } catch (error) {
+      console.error("Error fetching ingredients:", error);
+      res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+module.exports = {
+  createIngredient,
+  getAllIngredients,
+  deleteIngredient,
+  getIngredientById,
+  updateIngredient,
+  getIngredientsDetails
+};

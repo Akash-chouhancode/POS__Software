@@ -14,6 +14,7 @@ import { IoIosPeople } from "react-icons/io";
 import { FaFirstOrder, FaLock, FaTags } from "react-icons/fa";
 import { AuthContext } from "../store/AuthContext";
 import { FaTrophy } from "react-icons/fa";
+import { MdInventory } from "react-icons/md";
 import axios from "axios";
 const Nav = () => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -99,7 +100,7 @@ const Nav = () => {
         { title: "Return Invoice", link: "/return-invoice" },
         { title: "Supplier Manage", link: "/supplier-manage" },
         { title: "Supplier Ledger", link: "/supplier-ladger" },
-        { title: "Stock out ingredients", link: "/stock-out-ingredients" },
+    
       ],
     },
     {
@@ -124,6 +125,18 @@ const Nav = () => {
         { title: "Production Set List", link: "/set-production-list" },
         { title: "Add Production", link: "/add-production" },
         // { title: "Production Setting", link: "/working" },
+      ],
+    },
+
+
+    {
+      title: "Inventory Management",
+      icon: <MdInventory />,
+      submanu: true,
+      submanuItems: [
+        { title: "Ingredient stock list", link: "/stock-list" },
+        { title: "Stock out ingredients", link: "/stock-out-ingredients" },
+   
       ],
     },
 
@@ -334,7 +347,7 @@ const Nav = () => {
             <div key={index}>
               <ul>
                 <li
-                  className={`text-lg flex items-center gap-x-2 cursor-pointer p-2 hover:bg-[#4cddA1] hover:scale-105 duration-150 rounded-md mt-2${
+                  className={`text-lg flex  items-center gap-x-2 cursor-pointer p-2 hover:bg-[#4cddA1] hover:scale-105 duration-150 rounded-md mt-2${
                     location.pathname === items.link
                       ? "bg-[#4cddA1] text-zinc-900"
                       : ""
@@ -346,7 +359,7 @@ const Nav = () => {
                     <NavLink
                       to={items.link}
                       className={({ isActive }) =>
-                        isActive ? "text-[#ffffff]" : "text-zinc-100"
+                        isActive ? "text-[#ffffff]" : "text-zinc-100 "
                       }
                     >
                       {items.title}

@@ -51,26 +51,30 @@ const DialogBox = ({ isOpen, onClose, invoiceDatas}) => {
               </button>
             </div>
             <div className="">
-  <div className="w-full bg-white p-6">
-    {orderDetails.map((orderDetail, index) => (
+            <div className="w-full bg-white p-6">
+  {orderDetails.map((orderDetail, index) => {
+    // Filter menu items for the current order
+    const filteredMenuItems = menuItems.filter(
+      (item) => item.order_id === orderDetail.order_id
+    );
+
+    return (
       <div key={index}>
         <div className="flex justify-between items-center mb-6">
-          <div className=" flex flex-col">
-         <span><img src={logoUrls} alt="Logo" className="float-start" width={100} /></span> 
+          <div className="flex flex-col">
+            <span>
+              <img src={logoUrls} alt="Logo" className="float-start" width={100} />
+            </span>
             <div className="mt-2">
-            <h1 className="text-xl font-bold">{data[0].restro_name}</h1>
-              <p className=" font-semibold ">
-              {data[0].address}</p>
+              <h1 className="text-xl font-bold">{data[0].restro_name}</h1>
+              <p className="font-semibold">{data[0].address}</p>
             </div>
           </div>
           <div className="text-right">
             <h2 className="text-2xl font-bold">Invoice</h2>
             <p>Invoice No: {orderDetail.saleinvoice}</p>
             <p>Order Status: {orderDetail.order_status_name}</p>
-            <p>
-              Billing Date:{" "}
-              {new Date(orderDetail.bill_date).toLocaleDateString()}
-            </p>
+            <p>Billing Date: {new Date(orderDetail.bill_date).toLocaleDateString()}</p>
           </div>
         </div>
 
@@ -87,79 +91,36 @@ const DialogBox = ({ isOpen, onClose, invoiceDatas}) => {
           </div>
         </div>
 
+        {/* Table for Menu Items */}
         <table className="min-w-full bg-white">
           <thead>
             <tr>
               <th className="py-2 px-4 bg-gray-100 border-b">Item</th>
               <th className="py-2 px-4 bg-gray-100 border-b">Size</th>
-              <th className="py-2 px-4 bg-gray-100 border-b">Unit Price</th>
+              <th className="py-2 px-4 bg-gray-100 border-b">Price</th>
               <th className="py-2 px-4 bg-gray-100 border-b">Quantity</th>
-              <th className="py-2 px-4 bg-gray-100 border-b">Total Price</th>
+              <th className="py-2 px-4 bg-gray-100 border-b">Total</th>
             </tr>
           </thead>
           <tbody>
-            {menuItems.map((menuItem, index) => (
-              <tr key={index}>
-                <td className="py-2 px-4 border text-center">
-                  {menuItem.ProductName}
-                </td>
-                <td className="py-2 px-4 border text-center">
-                  {menuItem.variantName}
-                </td>
-                <td className="py-2 px-4 border text-center">
-                  ${Number(menuItem.price || 0).toFixed(2)}
-                </td>
-                <td className="py-2 px-4 border text-center">
-                  {menuItem.menuqty}
-                </td>
-                <td className="py-2 px-4 border text-center">
-                  ${(Number(menuItem.price || 0) * menuItem.menuqty).toFixed(2)}
+            {filteredMenuItems.map((menuItem) => (
+              <tr key={menuItem.row_id}>
+                <td className="py-2 px-4 border-b">{menuItem.ProductName}</td>
+                <td className="py-2 px-4 border-b">{menuItem.variantName}</td>
+                <td className="py-2 px-4 border-b">{menuItem.price}</td>
+                <td className="py-2 px-4 border-b">{menuItem.menuqty}</td>
+                <td className="py-2 px-4 border-b">
+                  {(menuItem.price * menuItem.menuqty).toFixed(2)}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-
-        <table className="w-full">
-          <tbody>
-            <tr className="py-2 px-4 border text-center">
-              <td className="border">Subtotal</td>
-              <td>${Number(orderDetail.totalamount || 0).toFixed(2)}</td>
-            </tr>
-            <tr className="py-2 px-4 border text-center">
-              <td className="border">Discount($)</td>
-              <td className="border">${Number(orderDetail.discount || 0).toFixed(2)}</td>
-            </tr>
-            <tr className="py-2 px-4 border text-center">
-              <td className="border">Service Charge(20%)</td>
-              <td className="border">${Number(orderDetail.service_charge || 0).toFixed(2)}</td>
-            </tr>
-            <tr className="py-2 px-4 border text-center">
-              <td className="border">Vat (%)</td>
-              <td className="border">${Number(orderDetail.VAT || 0).toFixed(2)}</td>
-            </tr>
-            <tr className="py-2 px-4 border text-center">
-              <td className="border">Grand Total</td>
-              <td className="border">${Number(orderDetail.bill_amount || 0).toFixed(2)}</td>
-            </tr>
-            <tr className="py-2 px-4 border text-center">
-              <td className="border">Customer Paid Amount</td>
-              <td className="border">${Number(orderDetail.customerpaid || 0).toFixed(2)}</td>
-            </tr>
-            <tr className="py-2 px-4 border text-center">
-              <td className="border">Change Due</td>
-              <td className="border">
-                ${(
-                  Number(orderDetail.customerpaid || 0) -
-                  Number(orderDetail.bill_amount || 0)
-                ).toFixed(2)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </div>
-    ))}
-  </div>
+    );
+  })}
+</div>
+
 </div>
           </div>
         </div>

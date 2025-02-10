@@ -130,6 +130,8 @@ import ForgetPassword from "./screen/ForgetPassword";
 import Edit_qrPage from "./screen/qrorders/Edit_qrPage";
 import Point_setting from "./screen/loyalty/Point_setting";
 import Customer_point from "./screen/loyalty/Customer_point";
+import ResetPassword from "./screen/ResetPassword";
+import InventoryStock from "./screen/purchasemanage/InventoryStock";
 
 const App = () => {
   const [isCashRegisterOpen, setIsCashRegisterOpen] = useState(false);
@@ -547,6 +549,18 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+
+
+<Route
+            path="/stock-list"
+            element={
+              <ProtectedRoute>
+                <InventoryStock />
+              </ProtectedRoute>
+            }
+          />
+
+
           <Route
             path="/supplier-ladger"
             element={
@@ -970,7 +984,7 @@ const App = () => {
           {/* Log_in */}
           <Route path="/log-in" element={<Log_in />} />
           <Route path="/forgetpassword" element={<ForgetPassword />} />
-
+          <Route path="/resetpassword/:id/:token" element={<ResetPassword/>} />
           {/* Error */}
           <Route path="/working" element={<Error />} />
         </Routes>

@@ -1,12 +1,13 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-
+// in this modal merge order pe paynmnet ho rha h 
 const SplitPaynmentModal = ({
   isOpen,
   onClose,
   paymentData,
   paymentMethod,
+  refreshOrderList,
 }) => {
   if (!isOpen) return null;
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -36,6 +37,7 @@ const SplitPaynmentModal = ({
   }, [discount, discountType, orderDetails]);
   
 
+
   const calculateDiscountedAmount = (total, discount, type) => {
     if (type === "percent") {
       return total - (total * discount) / 100;
@@ -56,16 +58,8 @@ const SplitPaynmentModal = ({
   const handleDiscountTypeChange = (event) => {
     setDiscountType(event.target.value);
   };
-  // get all booked table
-  const getBookTable = () => {
-    axios
-      .get(`${API_BASE_URL}/bookedtable`)
-      .then((res) => {})
-      .catch((error) => {
-        console.log(error);
-        toast.error("Cant show table");
-      });
-  };
+
+//merge paynment
   const orderIds = orderDetails.map((order) => order.order_id);
   const payPayment = () => {
     const formData = {
@@ -73,6 +67,7 @@ const SplitPaynmentModal = ({
       paidAmount,
       orderid: orderIds,
       discount: discount,
+      
     };
     console.log(formData)
 
@@ -80,15 +75,40 @@ const SplitPaynmentModal = ({
       .post(`${API_BASE_URL}/mergepayment`, formData)
       .then((response) => {
         console.log(response.data);
-        toast.success("Payment Complete");
-        getBookTable();
-
+        refreshOrderList()
+        toast.success("Payment Complete")
         onClose(); // Close the modal after payment
       })
       .catch((error) => {
         console.error(error);
         toast.error("Payment Failed");
       });
+  };
+// this api is for the due merge
+  const dueMerge = async () => {
+    const formData = {
+      payment_method_id: selectedMethod,
+      paidAmount,
+      orderid: orderIds,
+      discount: discount,
+    };
+    try {
+       const response = await axios.post(`${API_BASE_URL}/duemerge`, formData);
+       onClose();
+       refreshOrderList(); 
+      console.log(response)
+  
+     
+    } catch (error) {
+      if (error.response) {
+        toast.error('Error data:', error.response.data);
+        toast.error('Error status:', error.response.status);
+      } else if (error.request) {
+        toast.error('No response received:', error.request);
+      } else {
+        toast.error('Error message:', error.message);
+      }
+    }
   };
 
   return (
@@ -270,7 +290,15 @@ const SplitPaynmentModal = ({
                       </h1>
                     </div>
 
-                    <div>
+                    <div className=" flex justify-between mt-5">
+
+                    <button
+                        type="button"
+                        onClick={() => dueMerge()}
+                        className="bg-[#1C1D3E] float-right text-white py-2 px-4 rounded-md hover:bg-[#2B2F4A] text-nowrap"
+                      >
+                        Due Merge
+                      </button>
                       <button
                         type="button"
                         onClick={() => payPayment()}

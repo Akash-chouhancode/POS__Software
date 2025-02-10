@@ -536,15 +536,13 @@ const logoutUser = async (req, res) => {
 
         // Configure the email transporter
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
-            auth: {
-                user: 'akashlakshkar.sunshine@gmail.com', 
-                pass: 'xfhy fwee blja dibp',  
-              
-            },
+          host: "mail.theprojectxyz.xyz",
+          port: 465, // or 587
+          secure: true, 
+          auth: {
+            user: "akashlakshkar@theprojectxyz.xyz",
+            pass: "jBkPx@+Wjj^A",
+          },
         });
        
         console.log("userid and token",id,token)
@@ -557,7 +555,7 @@ const logoutUser = async (req, res) => {
             html: `
                 <h1>Password Reset Request</h1>
                 <p>You requested a password reset. Click the link below to reset your password:</p>
-                <p><a href="http://localhost:5174/resetpassword/${id}/${token}">Reset Password</a></p>
+                <p><a href="https://krayon.theprojectxyz.xyz/frontend/resetpassword/${id}/${token}">Reset Password</a></p>
                 <p>If you did not request this, please ignore this email.</p>
             `,
         };
@@ -573,7 +571,35 @@ const logoutUser = async (req, res) => {
     }
 };
 
+const resetPasswordController = async (req, res) => {
+  const { id, token } = req.params; // Extract user ID and token from request parameters
+  const { password } = req.body; // Extract new password from request body
 
+  try {
+      console.log("Reset Password Initiated");
+      console.log("User ID and Token:", id, token);
+
+      // Fetch user by ID
+      const user = await dbQuery("SELECT * FROM user WHERE id = ?", [id]);
+      if (user.length === 0) {
+          return res.status(404).json({ error: "User not found." });
+      }
+
+      console.log("User Found:", user);
+
+      // Hash the password using bcrypt before storing it (recommended for security)
+      const saltRounds = 10; // Number of salt rounds
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      // Update user's password in the database
+      await dbQuery("UPDATE user SET password = ? WHERE id = ?", [hashedPassword, id]);
+
+      res.status(200).json({ message: "Password updated successfully." });
+  } catch (error) {
+      console.error("Error in Reset Password Controller:", error);
+      res.status(500).json({ error: "An error occurred while resetting the password." });
+  }
+};
 
   module.exports={
     addUser,
@@ -585,5 +611,6 @@ const logoutUser = async (req, res) => {
     logoutUser,
     getAllCountry,
     checkIncheckOut,
-    ForgetPasswordController
+    ForgetPasswordController,
+    resetPasswordController
   }

@@ -41,4 +41,5 @@ router.get('/checkin',userControllers.checkIncheckOut);
 
 // forgot pass
 router.post("/forgetpassword",userControllers.ForgetPasswordController)
+router.post("/resetpassword/:id/:token",userControllers.resetPasswordController)
 module.exports = router;

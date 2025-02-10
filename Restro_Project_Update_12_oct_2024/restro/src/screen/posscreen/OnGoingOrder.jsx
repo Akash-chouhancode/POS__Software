@@ -36,6 +36,8 @@ import { data } from "autoprefixer";
 import { toast } from "react-toastify";
 import SplitModal from "../../components/SplitModal";
 import SplitPaynmentModal from "../../components/SplitPaynmentModal";
+import DuemergePaynmentModal from "../../components/DuemergePaynmentModal";
+import SplitpayModal from "../../components/SplitpayModal";
 
 const OnGoingOrder = () => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -43,9 +45,14 @@ const OnGoingOrder = () => {
   const [paymentMethod, setPaymentMethod] = useState();
   const [paynmentModal, setPaynmentModal] = useState(false);
   const [mergepaynmentModal, setMergePaynmentModal] = useState(false);
+  const [splitpaynmentModal, setSplitPaynmentModal] = useState(false);
+  const [mergeduepaynmentModal, setMergeduepaynmentModal] = useState(false);
   const [paymentData, setPaymentData] = useState([]);
   const [isDeletOpen, setIsDeletOpen] = useState(false);
-  const [ongoingData, setOngoingData] = useState([]);
+  const [ongoingData, setOngoingData] = useState({
+    nonmergedata: [],
+    mergedOrders: [],
+  });
   const [invoiceData, setInvoiceData] = useState([]);
   const [billData, setBillData] = useState([]);
   const [cModal5, setCmodal5] = useState(false);
@@ -57,7 +64,10 @@ const OnGoingOrder = () => {
   const [splitModal, setSplitModal] = useState(false);
   const [invoiceDataModal, setInvoiceDataModal] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState([]);
-
+  const [selecteSplitOrderid, setSelecteSplitOrderid] = useState(0);
+  const [selectedDueOrders, setSelectedDueOrders] = useState([]);
+const [customersplitID,setCustomersplitID]=useState(null)
+const[orderSplitId,setOrderSplitID]=useState(null)
   //delete id
   const [selectedOrderId, setSelectedOrderId] = useState(null);
 
@@ -169,23 +179,12 @@ const OnGoingOrder = () => {
 
   const getOngoing = async () => {
     try {
-      const responce = await axios.get(`${API_BASE_URL}/getOngoingOrder`);
+      const responce = await axios.get(`${API_BASE_URL}/duemergeorder`);
       console.log(responce.data.data);
-
-      setOngoingData(responce.data.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const showInvoiceData = async (order_id) => {
-    try {
-      const response = await axios.get(
-        `${API_BASE_URL}/getOrderById/${order_id}`
-      );
-      setInvoiceData([response.data]);
-      console.log("Invoice Data: ", invoiceData);
-      setInvoiceDataModal(true);
+      setOngoingData({
+        nonmergedata: responce.data.NonMergedOrder || [],
+        mergedOrders: responce.data.MergeOrder || [],
+      });
     } catch (error) {
       console.error(error);
     }
@@ -200,9 +199,7 @@ const OnGoingOrder = () => {
 
   const showBillDetails = async (order_id) => {
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/getOrderById/${order_id}`
-      );
+      const response = await axios.get(`${API_BASE_URL}/invoice/${order_id}`);
       setBillData([response.data]); // Set the data first
       console.log("Bill me daal na h ye data ", response.data);
       // Delay the print action until after the state has been updated
@@ -219,6 +216,7 @@ const OnGoingOrder = () => {
     setIsDeletOpen(true);
   };
 
+  // delete modal
   const DeletModal = ({ isOpen, onClose, order_id }) => {
     if (!isOpen) return null;
     const [anyreason, setAnyreason] = useState(""); // renamed to match backend
@@ -226,7 +224,7 @@ const OnGoingOrder = () => {
     const cancelOrder = (order_id) => {
       axios
         .post(
-          `${API_BASE_URL}/cancelOrder/${order_id}`,
+          `${API_BASE_URL}/cancelAllOrder/${order_id}`,
           { anyreason },
           { headers: { "Content-Type": "application/json" } }
         )
@@ -298,13 +296,14 @@ const OnGoingOrder = () => {
     );
   };
 
-  const showShplitData = (order_id) => {
+  const showShplitData = (order_id,customer_id) => {
     axios
       .get(`${API_BASE_URL}/splitorderdata/${order_id}`)
       .then((response) => {
-        console.log(response.data);
         setSplitData(response.data.menuItems);
         setSplitModal(true);
+        setCustomersplitID(customer_id)
+        setOrderSplitID(order_id)
         getBookTable();
       })
       .catch((error) => {
@@ -321,6 +320,41 @@ const OnGoingOrder = () => {
       setSelectedItems([...selectedItems, item]);
     }
   };
+
+  const closeModal = () => {
+    setSplitModal(false);
+    setSelectedItems([]); // Reset selected items when closing modal
+  };
+  const Toatalsplit = (selectedItems
+    .reduce((acc, item) => acc + item.menuqty * parseFloat(item.price), 0)
+    .toFixed(2));
+
+//  const orderIds = selectedItems.map((order) => order.order_id);
+  const payForselecteditem = ()=>{
+    const formData = {
+      order_id: orderSplitId,
+      customer_id:customersplitID,
+      total_price:Toatalsplit,
+      order_menu:selectedItems
+     
+    };
+ 
+   
+  
+    axios
+    .post(`${API_BASE_URL}/postsplit`, formData)
+    .then((response) => {
+    console.log("subid ",response.data.sub_order_ids
+      );
+      setSelecteSplitOrderid(response.data.sub_order_ids)   
+    setSplitPaynmentModal(true)
+    })
+    .catch((error) => {
+      console.error(error);
+      toast.error("Something went wrong..");
+    });
+
+  }
 
   const remainingItems = splitData.filter(
     (item) => !selectedItems.some((selected) => selected.row_id === item.row_id)
@@ -345,15 +379,41 @@ const OnGoingOrder = () => {
   };
 
   const handleMergeOrders = () => {
+    if (selectedOrders.length === 1 || selectedOrders.length === 0) {
+      toast.error("Please select at least Two order to merge!");
+      return;
+    }
     setMergePaynmentModal(true);
-    console.log("Selected Orders for Merge:", selectedOrders);
-    // Further processing like sending data to API or updating state can go here.
+  };
+  const showInvoiceData = async (order_id) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/invoice/${order_id}`);
+      setInvoiceData([response.data]);
+      console.log("Invoice Data: ", invoiceData);
+      setInvoiceDataModal(true);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const getMergePaymentdata = (id) => {
+    setMergeduepaynmentModal(true);
+    axios
+      .get(`${API_BASE_URL}/invoice/${id}`)
+      .then((response) => {
+        console.log("due merger data", response.data);
+        setSelectedDueOrders(response.data.orderDetails);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   };
 
   const refreshOrderList = () => {
     getOngoing();
     getBookTable();
     getunBookTable();
+    setSelectedOrders([]);
   };
   useEffect(() => {
     getOngoing();
@@ -451,110 +511,209 @@ const OnGoingOrder = () => {
                 </button>
               </div>
             </section>
+
             <section className="section3  mt-10">
+              <h2 className="text-xl font-bold mb-2">Non-Merged Orders</h2>
               <div className="table_data flex flex-wrap gap-y-8">
-                {ongoingData.map((val, index) => (
-                  <>
-                    <div className=" card p-5">
-                      <div className=" p-2 border-[1px] border-[#4CBBA1] shadow-sm shadow-[#4CBBA1]">
-                        <div className=" flex gap-2  items-center leading-3 px-3">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 48 48"
-                            className=" size-9"
-                          >
-                            <title>Dining Table</title>
-                            <g id="Dining_Table" data-name="Dining Table">
-                              <path d="M29.109,37.871,27,36.465V24H37a2,2,0,0,0,2-2V20a2,2,0,0,0-2-2H33.949A10.015,10.015,0,0,0,25,9.051V8h1a1,1,0,0,0,0-2H22a1,1,0,0,0,0,2h1V9.051A10.015,10.015,0,0,0,14.051,18H10a2,2,0,0,0-2,2v2a2,2,0,0,0,2,2H21V36.465l-2.109,1.406A2,2,0,0,0,18,39.535V40a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2v-.465A2,2,0,0,0,29.109,37.871ZM24,11a8.008,8.008,0,0,1,7.931,7H16.069A8.008,8.008,0,0,1,24,11ZM10,22V20H37v2ZM28,40H20v-.465l2.109-1.406A2,2,0,0,0,23,36.465V24h2V36.465a2,2,0,0,0,.891,1.664L28,39.535Z"></path>
-                              <path d="M46.374,30.4l1.608-12.133A2,2,0,0,0,46.006,16H44.92a2,2,0,0,0-1.926,1.481l-2.587,9.662H34.243a2.986,2.986,0,0,0-2.892,2.248L31.064,30.5h0a2,2,0,0,0,1.9,2.5l-1.932,7.762a1,1,0,0,0,.73,1.212A.961.961,0,0,0,32,42a1,1,0,0,0,.97-.758L35.022,33H43.2l1.825,8.217A1,1,0,0,0,46,42a1.018,1.018,0,0,0,.218-.024,1,1,0,0,0,.76-1.193l-1.854-8.341A2.992,2.992,0,0,0,46.374,30.4ZM33,31l.286-1.109a.988.988,0,0,1,.956-.747h6.932a1,1,0,0,0,.966-.741L44.92,18H46L44.392,30.133a1,1,0,0,1-.981.867L33,31Z"></path>
-                              <path d="M16.58,32.227a1.993,1.993,0,0,0,.357-1.727h0l-.286-1.106a2.988,2.988,0,0,0-2.893-2.25H7.593L5.006,17.481A2,2,0,0,0,3.08,16H1.994A2,2,0,0,0,.018,18.264L1.626,30.4a2.991,2.991,0,0,0,1.161,1.98L.919,40.783a1,1,0,0,0,1.953.434L4.7,33h8.175l2.052,8.242A1,1,0,0,0,15.9,42a.961.961,0,0,0,.242-.03,1,1,0,0,0,.729-1.212L14.935,33h.07A1.981,1.981,0,0,0,16.58,32.227ZM4.589,31a1,1,0,0,1-.981-.867L1.994,18h1.08L5.859,28.4a1,1,0,0,0,.966.741h6.932a.99.99,0,0,1,.957.748L15,31Z"></path>
-                            </g>
-                          </svg>
-                          <span className=" font-semibold">
-                            Table:
-                            {val.tablename ? val.tablename : "No table found"}
-                          </span>
-                          <input
-                            type="checkbox"
-                            onChange={() => handleCheckboxMerge(val)}
-                            className="size-5 custom-checkbox"
-                            checked={selectedOrders.some(
-                              (order) => order.order_id === val.order_id
-                            )}
-                          />
-                        </div>
-
-                        <div className="  px-3 font-semibold">
-                          <h1>Order Number :{val.order_id}</h1>
-                          <h2>
-                            Waiter:{" "}
-                            {val.waiter_first_name && val.waiter_last_name
-                              ? `${val.waiter_first_name} ${val.waiter_last_name}`
-                              : "No Waiter Found"}
-                          </h2>
-                        </div>
-                        {val.bill_status !== 1 && (
-                          <div className=" flex gap-x-2">
-                            <button
-                              onClick={() => {
-                                showPaynment(val.order_id);
-                              }}
-                              className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
+                {ongoingData.nonmergedata.length === 0 ? (
+                  <div className="no-orders-message">
+                    <h2 className=" text-2xl font-semibold ">
+                      No ongoing orders are available.
+                    </h2>
+                  </div>
+                ) : (
+                  ongoingData.nonmergedata.map((val, index) => (
+                    <>
+                      <div className=" card p-5">
+                        <div className=" p-2 border-[1px] border-[#4CBBA1] shadow-sm shadow-[#4CBBA1]">
+                          <div className=" flex gap-2  items-center leading-3 px-3">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 48 48"
+                              className=" size-9"
                             >
-                              <IoMdCheckmarkCircleOutline />
-
-                              <span className="text-[#fff]"> Make Payment</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                showShplitData(val.order_id);
-                              }}
-                              className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
-                            >
-                              <PiSplitHorizontalBold />
-
-                              <span className="text-[#fff]">Split</span>
-                            </button>
+                              <title>Dining Table</title>
+                              <g id="Dining_Table" data-name="Dining Table">
+                                <path d="M29.109,37.871,27,36.465V24H37a2,2,0,0,0,2-2V20a2,2,0,0,0-2-2H33.949A10.015,10.015,0,0,0,25,9.051V8h1a1,1,0,0,0,0-2H22a1,1,0,0,0,0,2h1V9.051A10.015,10.015,0,0,0,14.051,18H10a2,2,0,0,0-2,2v2a2,2,0,0,0,2,2H21V36.465l-2.109,1.406A2,2,0,0,0,18,39.535V40a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2v-.465A2,2,0,0,0,29.109,37.871ZM24,11a8.008,8.008,0,0,1,7.931,7H16.069A8.008,8.008,0,0,1,24,11ZM10,22V20H37v2ZM28,40H20v-.465l2.109-1.406A2,2,0,0,0,23,36.465V24h2V36.465a2,2,0,0,0,.891,1.664L28,39.535Z"></path>
+                                <path d="M46.374,30.4l1.608-12.133A2,2,0,0,0,46.006,16H44.92a2,2,0,0,0-1.926,1.481l-2.587,9.662H34.243a2.986,2.986,0,0,0-2.892,2.248L31.064,30.5h0a2,2,0,0,0,1.9,2.5l-1.932,7.762a1,1,0,0,0,.73,1.212A.961.961,0,0,0,32,42a1,1,0,0,0,.97-.758L35.022,33H43.2l1.825,8.217A1,1,0,0,0,46,42a1.018,1.018,0,0,0,.218-.024,1,1,0,0,0,.76-1.193l-1.854-8.341A2.992,2.992,0,0,0,46.374,30.4ZM33,31l.286-1.109a.988.988,0,0,1,.956-.747h6.932a1,1,0,0,0,.966-.741L44.92,18H46L44.392,30.133a1,1,0,0,1-.981.867L33,31Z"></path>
+                                <path d="M16.58,32.227a1.993,1.993,0,0,0,.357-1.727h0l-.286-1.106a2.988,2.988,0,0,0-2.893-2.25H7.593L5.006,17.481A2,2,0,0,0,3.08,16H1.994A2,2,0,0,0,.018,18.264L1.626,30.4a2.991,2.991,0,0,0,1.161,1.98L.919,40.783a1,1,0,0,0,1.953.434L4.7,33h8.175l2.052,8.242A1,1,0,0,0,15.9,42a.961.961,0,0,0,.242-.03,1,1,0,0,0,.729-1.212L14.935,33h.07A1.981,1.981,0,0,0,16.58,32.227ZM4.589,31a1,1,0,0,1-.981-.867L1.994,18h1.08L5.859,28.4a1,1,0,0,0,.966.741h6.932a.99.99,0,0,1,.957.748L15,31Z"></path>
+                              </g>
+                            </svg>
+                            <span className=" font-semibold">
+                              Table:
+                              {val.tablename ? val.tablename : "No table found"}
+                            </span>
+                            <input
+                              type="checkbox"
+                              onChange={() => handleCheckboxMerge(val)}
+                              className="size-5 custom-checkbox"
+                              checked={selectedOrders.some(
+                                (order) => order.order_id === val.order_id
+                              )}
+                            />
                           </div>
-                        )}
 
-                        <div className=" flex justify-evenly overflow-hidden">
-                          <button
-                            onClick={() => {
-                              showInvoiceData(val.order_id);
-                            }}
-                            className="  items-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer rounded-sm text-sm"
-                          >
-                            <IoDocumentAttachOutline />
-                            Invoice
-                          </button>
-                          <button
-                            onClick={() => showBillDetails(val.order_id)}
-                            className="items-center gap-1 px-1 py-1 flex bg-[#4CBBA1] text-[#fff] cursor-pointer rounded-sm text-sm"
-                          >
-                            <IoPrintOutline />
-                            Print
-                          </button>
+                          <div className="  px-3 font-semibold">
+                            <h1>Order Number :{val.order_id}</h1>
+                            <h2>
+                              Waiter:{" "}
+                              {val.waiter_first_name && val.waiter_last_name
+                                ? `${val.waiter_first_name} ${val.waiter_last_name}`
+                                : "No Waiter Found"}
+                            </h2>
+                          </div>
+                          {val.bill_status !== 1 && (
+                            <div className=" flex gap-x-2">
+                              <button
+                                onClick={() => {
+                                  showPaynment(val.order_id);
+                                }}
+                                className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
+                              >
+                                <IoMdCheckmarkCircleOutline />
 
-                          <button
-                            className=" items-center gap-1  px-1 py-1 flex bg-[#a02828] text-[#fff]  cursor-pointer rounded-sm text-sm"
-                            onClick={() => {
-                              deleteOrder(val.order_id);
-                            }}
-                          >
-                            <FaRegTrashCan />
-                            Cancel
-                          </button>
-                          <DeletModal
-                            isOpen={isDeletOpen}
-                            order_id={selectedOrderId}
-                            onClose={closeModaldelete}
-                          />
+                                <span className="text-[#fff]">
+                                  {" "}
+                                  Make Payment
+                                </span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  showShplitData(val.order_id,val.customer_id);
+                                }}
+                                className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
+                              >
+                                <PiSplitHorizontalBold />
+
+                                <span className="text-[#fff]">Split</span>
+                              </button>
+                            </div>
+                          )}
+
+                          <div className=" flex gap-x-3 overflow-hidden">
+                            <button
+                              onClick={() => {
+                                showInvoiceData(val.order_id);
+                              }}
+                              className="  items-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer rounded-sm text-sm"
+                            >
+                              <IoDocumentAttachOutline />
+                              Invoice
+                            </button>
+                            <button
+                              onClick={() => showBillDetails(val.order_id)}
+                              className="items-center gap-1 px-1 py-1 flex bg-[#4CBBA1] text-[#fff] cursor-pointer rounded-sm text-sm"
+                            >
+                              <IoPrintOutline />
+                              Print
+                            </button>
+
+                            <button
+                              className=" items-center gap-1  px-1 py-1 flex bg-[#a02828] text-[#fff]  cursor-pointer rounded-sm text-sm"
+                              onClick={() => {
+                                deleteOrder(val.order_id);
+                              }}
+                            >
+                              <FaRegTrashCan />
+                              Cancel
+                            </button>
+                            <DeletModal
+                              isOpen={isDeletOpen}
+                              order_id={selectedOrderId}
+                              onClose={closeModaldelete}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </>
-                ))}
+                    </>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="section3  mt-10">
+              <h2 className="text-xl font-bold mt-6 mb-2">Merged Orders</h2>
+              <div className="table_data flex flex-wrap gap-y-8">
+                {ongoingData.mergedOrders.length === 0 ? (
+                  <div className="no-orders-message">
+                    <h2 className=" text-2xl font-semibold ">
+                      No merge Due orders are available.
+                    </h2>
+                  </div>
+                ) : (
+                  ongoingData.mergedOrders.map((val, index) => (
+                    <>
+                      <div className=" card p-5">
+                        <div className=" p-2 border-[1px] border-[#4CBBA1] shadow-sm shadow-[#4CBBA1]">
+                          <div className="  px-3 font-semibold">
+                            <h1>Order Number :{val.marge_order_id}</h1>
+                            <h2>
+                              Waiter:{" "}
+                              {val.waiter_first_name && val.waiter_last_name
+                                ? `${val.waiter_first_name} ${val.waiter_last_name}`
+                                : "No Waiter Found"}
+                            </h2>
+                          </div>
+                          {val.bill_status !== 1 && (
+                            <div className=" flex gap-x-2">
+                              <button
+                                // onClick={}
+
+                                onClick={() => {
+                                  getMergePaymentdata(val.marge_order_id);
+                                }}
+                                className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
+                              >
+                                <IoMdCheckmarkCircleOutline />
+
+                                <span className="text-[#fff]">
+                                  {" "}
+                                  Make Payment
+                                </span>
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="  flex gap-x-3  overflow-hidden">
+                            <button
+                              onClick={() => {
+                                showInvoiceData(val.marge_order_id);
+                              }}
+                              className="  items-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer rounded-sm text-sm"
+                            >
+                              <IoDocumentAttachOutline />
+                              Invoice
+                            </button>
+                            <button
+                              onClick={() =>
+                                showBillDetails(val.marge_order_id)
+                              }
+                              className="items-center gap-1 px-1 py-1 flex bg-[#4CBBA1] text-[#fff] cursor-pointer rounded-sm text-sm"
+                            >
+                              <IoPrintOutline />
+                              Print
+                            </button>
+
+                            <button
+                              className=" items-center gap-1  px-1 py-1 flex bg-[#a02828] text-[#fff]  cursor-pointer rounded-sm text-sm"
+                              onClick={() => {
+                                deleteOrder(val.marge_order_id);
+                              }}
+                            >
+                              <FaRegTrashCan />
+                              Cancel
+                            </button>
+                            <DeletModal
+                              isOpen={isDeletOpen}
+                              order_id={selectedOrderId}
+                              onClose={closeModaldelete}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ))
+                )}
               </div>
             </section>
           </div>
@@ -753,9 +912,10 @@ const OnGoingOrder = () => {
       <SplitModal
         title="Split Bill for Menu Items"
         isOpen={splitModal}
-        onClose={() => setSplitModal(false)}
+        onClose={() => closeModal()}
       >
-        <div>
+        {/* div to show the menu item */}
+        <div className="w-1/3">
           {splitData && splitData.length > 0 ? (
             <div>
               <h2 className="text-lg font-semibold mb-4">Menu Items</h2>
@@ -763,7 +923,7 @@ const OnGoingOrder = () => {
                 {splitData.map((item) => (
                   <li
                     key={item.row_id}
-                    className="flex items-center justify-between gap-x-5 p-2 border-[1px] border-[#79d49f] rounded-md shadow-sm"
+                    className="flex items-center justify-between gap-x-5 p-2 border-[1px] border-[#4CBBA1] rounded-md shadow-sm"
                   >
                     <label className="flex items-center space-x-3">
                       <input
@@ -785,22 +945,42 @@ const OnGoingOrder = () => {
             <p className="text-gray-500">No menu items available.</p>
           )}
         </div>
-        <div>
+        <div className=" w-full">
           {/* Selected Items Section */}
-          <div>
-            <h3 className="text-lg font-bold">Selected Items</h3>
-            <ul>
-              {selectedItems.map((item) => (
-                <li
-                  key={item.row_id}
-                  className="flex justify-between border p-2"
-                >
-                  <span>{item.ProductName}</span>
-                  <span>Qty: {item.menuqty}</span>
-                  <span>Price: {parseFloat(item.price).toFixed(2)}</span>
-                </li>
-              ))}
-            </ul>
+          <div className="">
+            <div>
+              <h3 className="text-lg font-bold ">Selected Items</h3>
+              <table className="min-w-full border-collapse border-[1px] border-[#4CBBA1]">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border-[1px] border-[#4CBBA1] p-2 text-left">
+                      Product Name
+                    </th>
+                    <th className="border-[1px] border-[#4CBBA1] p-2 text-left">
+                      Quantity
+                    </th>
+                    <th className="border-[1px] border-[#4CBBA1] p-2 text-left">
+                      Price
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedItems.map((item) => (
+                    <tr key={item.row_id} className="border-b">
+                      <td className="border-[1px] border-[#4CBBA1] p-2">
+                        {item.ProductName}
+                      </td>
+                      <td className="border-[1px] border-[#4CBBA1] p-2">
+                        {item.menuqty}
+                      </td>
+                      <td className="border-[1px] border-[#4CBBA1] p-2">
+                        {parseFloat(item.price).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <div>
               <strong>Total: </strong>
               {selectedItems
@@ -810,33 +990,72 @@ const OnGoingOrder = () => {
                 )
                 .toFixed(2)}
             </div>
-            <button className="btn btn-primary">Pay for Selected Items</button>
+            <button 
+            onClick={(()=>{
+              payForselecteditem()
+            })}
+            
+            className="bg-[#0f044a]  text-[#fff] border-[2px] border-zinc-300 rounded-xl cursor-pointer p-3">
+              Pay for Selected Items
+            </button>
           </div>
 
           {/* Remaining Items Section */}
-          <div>
+          <div className=" ">
             <h3 className="text-lg font-bold">Remaining Items</h3>
-            <ul>
-              {remainingItems.map((item) => (
-                <li
-                  key={item.row_id}
-                  className="flex justify-between border p-2"
-                >
-                  <span>{item.ProductName}</span>
-                  <span>Qty: {item.menuqty}</span>
-                  <span>Price: {item.price}</span>
-                </li>
-              ))}
-            </ul>
-            <div>
-              <strong>Total: </strong>
-              {remainingItems
-                .reduce(
-                  (acc, item) => acc + item.menuqty * parseFloat(item.price),
-                  0
-                )
-                .toFixed(2)}
-            </div>
+            <table className="min-w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 p-2 text-left">
+                    Product Name
+                  </th>
+                  <th className="border border-gray-300 p-2 text-left">
+                    Quantity
+                  </th>
+                  <th className="border border-gray-300 p-2 text-left">
+                    Price
+                  </th>
+                  <th className="border border-gray-300 p-2 text-left">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {remainingItems.map((item) => (
+                  <tr key={item.row_id} className="border-b">
+                    <td className="border border-gray-300 p-2">
+                      {item.ProductName}
+                    </td>
+                    <td className="border border-gray-300 p-2">
+                      {item.menuqty}
+                    </td>
+                    <td className="border border-gray-300 p-2">{item.price}</td>
+                    <td className="border border-gray-300 p-2">
+                      {(item.menuqty * parseFloat(item.price)).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td
+                    colSpan="3"
+                    className="border border-gray-300 p-2 text-right"
+                  >
+                    <strong>Total:</strong>
+                  </td>
+                  <td className="border border-gray-300 p-2">
+                    {remainingItems
+                      .reduce(
+                        (acc, item) =>
+                          acc + item.menuqty * parseFloat(item.price),
+                        0
+                      )
+                      .toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
       </SplitModal>
@@ -850,11 +1069,39 @@ const OnGoingOrder = () => {
       ></PaynmentDialogBox>
 
       <SplitPaynmentModal
+        refreshOrderList={refreshOrderList}
         isOpen={mergepaynmentModal}
         onClose={() => setMergePaynmentModal(false)}
         paymentData={[selectedOrders]}
         paymentMethod={paymentMethod}
       ></SplitPaynmentModal>
+
+ <SplitpayModal
+  refreshOrderList={refreshOrderList}
+  isOpen={splitpaynmentModal}
+  onClose={() => setSplitPaynmentModal(false)}
+  paymentData={[selectedItems]}
+  paymentMethod={paymentMethod}
+  Orderids={selecteSplitOrderid}
+ 
+ 
+ 
+ >
+
+
+
+
+ </SplitpayModal>
+
+
+
+      <DuemergePaynmentModal
+        refreshOrderList={refreshOrderList}
+        isOpen={mergeduepaynmentModal}
+        onClose={() => setMergeduepaynmentModal(false)}
+        paymentData={[selectedDueOrders]}
+        paymentMethod={paymentMethod}
+      />
 
       <InvoiceDialogBox
         isOpen={invoiceDataModal}

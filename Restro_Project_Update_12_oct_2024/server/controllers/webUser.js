@@ -17,58 +17,6 @@ const dbQuery = (query, values) => {
   const bcrypt = require('bcryptjs');
   const saltRounds = 10; // You can increase this value for more security
 
-  // const loginCustomer = async (req, res) => {
-  //   try {
-  //     const { customer_email, password } = req.body;
-  
-  //     console.log("email", customer_email, password);
-  //     // Check if email exists in the database
-  //     const findCustomerQuery = `SELECT * FROM customer_info WHERE customer_email = ?`;
-  //     db.pool.query(findCustomerQuery, [customer_email], async (err, results) => {
-  //       if (err) {
-  //         console.error("Database Error:", err);
-  //         return res
-  //           .status(500)
-  //           .json({ success: false, message: "An error occurred" });
-  //       }
-  
-  //       // If no user is found
-  //       if (results.length === 0) {
-  //         return res
-  //           .status(404)
-  //           .json({ success: false, message: "User not found" });
-  //       }
-  
-  //       const customer = results[0];
-  
-  //       // Compare the provided password with the stored hashed password
-  //       const isPasswordValid = await bcrypt.compare(password, customer.password);
-  //       if (!isPasswordValid) {
-  //         return res
-  //           .status(401)
-  //           .json({ success: false, message: "Invalid credentials" });
-  //       }
-  
-  //       // On successful login
-  //       return res.status(200).json({
-  //         success: true,
-  //         message: "Login successful",
-  //         data: {
-  //           customer_id: customer.customer_id,
-  //           customer_name: customer.customer_name,
-  //           customer_email: customer.customer_email,
-  //           customer_address:customer.customer_address,
-  //           customer_picture:customer.customer_picture,
-  //           customer_phone:customer.customer_phone,
-  //         },
-  //       });
-  //     });
-  //   } catch (error) {
-  //     console.error("Server Error:", error);
-  //     res.status(500).json({ success: false, message: "An error occurred" });
-  //   }
-  // };
-
   const loginCustomer = async (req, res) => {
     try {
       const { customer_email, password } = req.body;
@@ -751,14 +699,17 @@ const getInTouch = async (req, res) => {
   if (!firstname || !lastname || !phone || !email_address || !message) {
     return res.status(400).json({ message: 'All fields are required.' });
   }
-
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: "mail.theprojectxyz.xyz",
+    port: 465, // or 587
+    secure: true, 
     auth: {
-      user: "akashlakshkar.sunshine@gmail.com",
-      pass: "xfhy fwee blja dibp",
+      user: "akashlakshkar@theprojectxyz.xyz",
+      pass: "jBkPx@+Wjj^A",
     },
   });
+
+
 
   const mailOptions = {
     from: 'your_email@gmail.com',
@@ -813,8 +764,78 @@ const getInTouch = async (req, res) => {
   }
 };
 
+const ForgetPasswordController = async (req, res) => {
+  const { email } = req.body;
 
+  console.log("Email:", email);
+  try {
+    // Fetch user from the database
+    const rows = await dbQuery(
+      "SELECT * FROM customer_info WHERE customer_email = ?",
+      [email]
+    );
+    if (rows.length === 0) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    const user = rows[0];
+    const id = user.customer_id;
+    // Generate a JWT token
+    const token = jwt.sign(
+      { id: id },
+      process.env.JWT_SECRET || "uhkjhkh@13142#$", 
+    );
 
+    // Configure the email transporter
+    const transporter = nodemailer.createTransport({
+      host: "mail.theprojectxyz.xyz",
+      port: 465, // or 587
+      secure: true, 
+      auth: {
+        user: "akashlakshkar@theprojectxyz.xyz",
+        pass: "jBkPx@+Wjj^A",
+      },
+    });
+    // Email options
+    const mailOptions = {
+      from: 'support@krayon.upgradu.in',
+      to: user.customer_email, 
+      subject: "Password Reset Request",
+      html: `
+        <h1>Password Reset Request</h1>
+        <p>You requested a password reset. Click the link below to reset your password:</p>
+        <p><a href="https://krayon.theprojectxyz.xyz/restro-frontend/newresetpassword/${id}/${token}">Reset Password</a></p>
+        <p>If you did not request this, please ignore this email.</p>
+      `,
+    };
+  
+    await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully");
+    res.status(200).json({ message: "Password reset link sent to email" });
+  } catch (err) {
+    console.error("Server Error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+const newResetPassword= async (req, res) => {
+  const { id, token } = req.params;
+  const { newPassword } = req.body;
+  console.log("id",id,token);
+  console.log("passord",newPassword)
+  try {
+    // Verify the token
+    // const decoded = jwt.verify(token, process.env.JWT_SECRET || 'uhkjhkh@13142#$');
+    // if (decoded.id !== parseInt(id, 10)) {
+    //   return res.status(400).json({ message: 'Invalid token or user ID' });
+    // }
+
+    // Update the password in the database
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await dbQuery('UPDATE customer_info SET password = ? WHERE customer_id = ?', [hashedPassword, id]);
+    res.status(200).json({ message: 'Password reset successfully' });
+  } catch (err) {
+    res.status(400).json({ message: 'Invalid or expired token' });
+  }
+}
   module.exports={
     loginCustomer,
     newCreateCustomer,
@@ -824,5 +845,7 @@ const getInTouch = async (req, res) => {
     createReservationNew,
     weborderPlace,
     getWebOrderById,
-    getInTouch
+    getInTouch,
+    ForgetPasswordController,
+    newResetPassword
   }

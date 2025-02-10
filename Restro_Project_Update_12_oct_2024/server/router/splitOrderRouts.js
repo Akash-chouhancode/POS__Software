@@ -8,7 +8,7 @@ router.get ("/splitorderdata/:id",splitcontroller.showsplitorder)
 router.post("/mergepayment", splitcontroller.mergeMakePayment);
 
 
-
+router.post('/paysplit',splitcontroller.paymentSplitOrder)
 
 
 

@@ -14,4 +14,7 @@ router.delete("/ingredients/:id", ingredientsController.deleteIngredient);
 router.get("/ingredients", ingredientsController.getAllIngredients);
 router.get('/ingredients/:id', ingredientsController.getIngredientById);
 router.put('/ingredients/:id', ingredientsController.updateIngredient);
+// get ingredient list accourding t stock
+
+router.get('/ingredientsdetail',ingredientsController.getIngredientsDetails);
 module.exports = router;

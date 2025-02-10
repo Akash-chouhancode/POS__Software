@@ -201,7 +201,96 @@ const dbQuery = (query, values) => {
     });
   };
 
+
+  const paymentSplitOrder = async (req, res) => {
+    const { sub_order_ids, paidAmount, payment_method_id, discount } = req.body;
+    const order_id=sub_order_ids[0];
+
+    // if (!order_id || !Array.isArray(paidAmount) || paidAmount.length === 0 || 
+    //     !Array.isArray(payment_method_id) || paidAmount.length !== payment_method_id.length) {
+    //     return res.status(400).json({ message: 'Required fields are missing or invalid paidAmount/payment_method_id data' });
+    // }
+
+    try {
+        // Use `promise().query()` for all queries
+        await db.pool.promise().query('UPDATE sub_order SET discount = ?, status = 1 WHERE sub_id = ?', [discount, order_id]);
+        await db.pool.promise().query('UPDATE sub_order SET invoiceprint = 2 WHERE sub_id = ?', [order_id]);
+
+        // Fetch sub_order details
+        const [orderSub] = await db.pool.promise().query('SELECT * FROM sub_order WHERE sub_id = ?', [order_id]);
+
+        if (!orderSub.length) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        const order_id1 = orderSub[0].order_id;
+        console.log("orderid", orderSub[0].order_id);
+        const menu_id = orderSub[0].order_menu_id;
+        console.log("menuid", menu_id);
+        
+        // Corrected SQL query with proper WHERE condition
+        const [data] = await db.pool.promise().query(
+            'UPDATE order_menu SET food_status = 1 WHERE order_id = ? AND menu_id = ?', 
+            [order_id1, menu_id]
+        );
+        
+        console.log(data, "menuuuu");
+             
+// Fetch bill details
+        const [billInfo] = await db.pool.promise().query('SELECT * FROM bill WHERE order_id = ?', [order_id1]);
+        if (!billInfo.length) {
+            return res.status(404).json({ message: 'Bill not found' });
+        }
+        const bill_id = billInfo[0].bill_id;
+
+        // Process multiple payments
+        let paidAmount = 0;
+        for (let i = 0; i < paidAmount.length; i++) {
+            paidAmount += parseFloat(paidAmount[i]);
+            await db.pool.promise().query(
+                'INSERT INTO multipay_bill (order_id, multipayid, payment_type_id, amount) VALUES (?, ?, ?, ?)', 
+                [order_id1, bill_id, payment_method_id[i], paidAmount[i]]
+            );
+        }
+
+        await db.pool.promise().query('UPDATE customer_order SET splitpay_status = 1, invoiceprint = 2 WHERE order_id = ?', [order_id1]);
+
+        // Check if all sub-orders are completed
+        const [totalOrder] = await db.pool.promise().query('SELECT COUNT(*)AS total FROM sub_order WHERE status = 0 AND order_id = ?', [order_id1]);
+        if (totalOrder[0].total === 0) {
+            const [totalDiscount] = await db.pool.promise().query('SELECT SUM(discount)AS totaldiscount FROM sub_order WHERE order_id = ?', [order_id1]);
+            const [billDetails] = await db.pool.promise().query('SELECT bill_amount FROM bill WHERE order_id = ?', [order_id1]);
+
+            await db.pool.promise().query('UPDATE customer_order SET order_status = 4 WHERE order_id = ?', [order_id1]);
+console.log("dis",totalDiscount[0].totaldiscount,"bill",billDetails[0].bill_amount)
+            const updatedBill = {
+                bill_status: 1,
+                discount: totalDiscount[0].totaldiscount || 0,
+                bill_amount: billDetails[0].bill_amount - (totalDiscount[0].totaldiscount || 0),
+                payment_method_id: payment_method_id[0],
+              
+                create_at: new Date(),
+            };
+
+            await db.pool.promise().query('UPDATE bill SET ? WHERE order_id = ?', [updatedBill, order_id1]);
+            await db.pool.promise().query('DELETE FROM table_details WHERE order_id = ?', [order_id1]);
+
+            const [finalBill] = await db.pool.promise().query('SELECT * FROM bill WHERE order_id = ?', [order_id1]);
+            console.log("final",finalBill)
+
+            return res.status(200).json({
+                message: 'Order processed successfully',
+                finalBillAmount: finalBill[0].bill_amount,
+            });
+        } else {
+            return res.status(200).json({ message: 'Partial payment received, awaiting remaining payments' });
+        }
+    } catch (error) {
+        console.error('Error processing the order:', error);
+        return res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
   module.exports={
     showsplitorder,
-    mergeMakePayment
+    mergeMakePayment,
+    paymentSplitOrder
   }
