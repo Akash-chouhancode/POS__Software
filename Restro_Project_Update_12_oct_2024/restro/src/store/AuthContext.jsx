@@ -151,7 +151,6 @@ const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
   // Initialize state from localStorage
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [permissions, setPermissions] = useState(() => {

@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useContext } from "react";
 import { toast } from "react-toastify";
 
 const SplitpayModal = ({
@@ -9,7 +9,9 @@ const SplitpayModal = ({
     paymentMethod,
     Orderids,
     refreshOrderList,
-  }) => {
+  }) => 
+    
+    {
     if (!isOpen) return null;
     if (!isOpen) return null;
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -18,18 +20,16 @@ const SplitpayModal = ({
       const [discount, setDiscount] = useState(0);
       const [discountType, setDiscountType] = useState("percent"); // or "amount"
       const orderDetails = paymentData[0];
-
+     
       
   useEffect(() => {
     if (orderDetails.length > 0) {
       // Calculate the combined total amount from all orders
-      const totalAmount = orderDetails.reduce((sum, order) => {
-        return sum + parseFloat(order.price*order.menuqty || 0); // Safely parse totalamount to a number
-      }, 0);
+      
   
       // Calculate the discounted amount based on the total amount
       const calculatedAmount = calculateDiscountedAmount(
-        totalAmount,
+        total,
         discount,
         discountType
       );
@@ -39,7 +39,24 @@ const SplitpayModal = ({
     }
   }, [discount, discountType, orderDetails]);
   
+console.log(orderDetails)
 
+const total = orderDetails.reduce((acc, item) => {
+  const qty = parseFloat(item.menu_qty) || 0; // Ensure qty is a number
+  const price = parseFloat(item.total_price) || 0; // Ensure price is a number
+  const vat = parseFloat(item.Product_vat) || 0; // Ensure vat is a number
+
+  // Calculate the total price of add-ons
+  const addonsPrice = item.add_ons && item.add_ons.length > 0
+    ? item.add_ons.reduce((addonAcc, val) => {
+        const addonQty = parseFloat(val.quantity) || 0; // Ensure addon quantity is a number
+        const addonPrice = parseFloat(val.price) || 0; // Ensure addon price is a number
+        return addonAcc + (addonQty * addonPrice); // Accumulate the add-on total
+      }, 0)
+    : 0; // Default to 0 if no add-ons
+
+  return acc + (qty * price) + vat + addonsPrice; // Accumulate the total
+}, 0).toFixed(2); 
 
   const calculateDiscountedAmount = (total, discount, type) => {
     if (type === "percent") {
@@ -77,9 +94,9 @@ const SplitpayModal = ({
     axios
       .post(`${API_BASE_URL}/paysplit`, formData)
       .then((response) => {
-        console.log(response.data);
+        console.log("split pay response",response.data);
         refreshOrderList()
-        toast.success("Payment Complete")
+        toast.success("Partial payment complete remaining payments due.")
         onClose(); // Close the modal after payment
       })
       .catch((error) => {
@@ -105,23 +122,37 @@ const SplitpayModal = ({
           <div className="container mx-auto p-4">
           <h2 className="text-xl font-bold mb-4">Order Table</h2>
           <table className="min-w-full bg-white border border-gray-300">
-              <thead>
-                  <tr className="bg-gray-200">
-                  <th className="py-2 px-4 border-b">SL.</th>
-                      <th className="py-2 px-4 border-b">Order Number</th>
-                      <th className="py-2 px-4 border-b">Total Amount</th>
-                  </tr>
-              </thead>
-              <tbody>
-                  {orderDetails.map((order,index) => (
-                      <tr key={order.order_id} className="hover:bg-gray-100">
-                          <td className="py-2 px-4 border-b">{index+1}</td>
-                          <td className="py-2 px-4 border-b">{order.order_id}</td>
-                          <td className="py-2 px-4 border-b">${order.price*order.menuqty}</td>
-                      </tr>
-                  ))}
-              </tbody>
-          </table>
+  <thead>
+    <tr className="bg-gray-200">
+      <th className="py-2 px-4 border-b text-center">SL.</th>
+      <th className="py-2 px-4 border-b text-center">Product Name</th>
+      <th className="py-2 px-4 border-b text-center">Total Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {orderDetails.map((order, index) => {
+      // Convert values to numbers
+      const menuPrice = parseFloat(order.total_price) * parseInt(order.menu_qty);
+      const vatAmount = parseFloat(order.Product_vat);
+      
+      // Calculate total add-on price
+      const addOnTotal = order.add_ons && order.add_ons.length > 0 
+        ? order.add_ons.reduce((sum, addOn) => sum + (parseFloat(addOn.price) * parseInt(addOn.quantity)), 0)
+        : 0;
+
+      // Final total amount
+      const totalAmount = menuPrice + vatAmount + addOnTotal;
+
+      return (
+        <tr key={order.order_menu_id} className="hover:bg-gray-100">
+          <td className="py-2 px-4 border-b text-center">{index + 1}</td>
+          <td className="py-2 px-4 border-b text-center">{order.variantName}</td>
+          <td className="py-2 px-4 border-b text-center">${totalAmount.toFixed(2)}</td>
+        </tr>
+      );
+    })}
+  </tbody>
+</table>
       </div>
 
           <div className="px-6">

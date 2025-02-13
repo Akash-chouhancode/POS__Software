@@ -178,9 +178,9 @@ const InventoryStock = () => {
       head: [
         [
           "Ingredient Name",
-          "Ingredient_Uni",
+          "Ingredient Unit",
           "Stock Quantity",
-          "Minimum_Stock_Quantity",
+          "Minimum Stock Quantity",
         ],
       ],
       body: rows,

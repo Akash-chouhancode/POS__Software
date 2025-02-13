@@ -164,305 +164,6 @@ const getProductsByCategory = async (req, res) => {
   }
 };
 
-// const orderPlace = (req, res) => {
-//   const {
-//     customer_id,
-//     customer_type,
-//     waiter_id,
-//     order_details,
-//     grand_total,
-//     service_charge,
-//     VAT,
-//     discount,
-//     table_id,
-//   } = req.body;
-
-//   if (
-//     !customer_id ||
-//     !order_details ||
-//     !Array.isArray(order_details) ||
-//     !grand_total
-//   ) {
-//     return res.status(400).json({ message: "Invalid request data" });
-//   }
-
-//   // Ensure waiter_id and table_id default to 0 if not provided
-//   const waiterId = waiter_id || 0;
-//   const tableId = table_id || 0;
-
-//   // Get the max order ID
-//   const maxOrderIdQuery =
-//     "SELECT MAX(order_id) AS maxOrderId FROM customer_order";
-//   db.pool.query(maxOrderIdQuery, (err, result) => {
-//     if (err) {
-//       console.error("Error getting max order ID:", err);
-//       return res.status(500).json({ message: "Internal server error" });
-//     }
-
-//     const maxOrderId = result[0].maxOrderId;
-//     const invoiceId = maxOrderId ? maxOrderId + 1 : 1;
-
-//     const isthirdparty = customer_type === 3 ? 3 : 0;
-
-//     const orderQuery = `INSERT INTO customer_order(saleinvoice, customer_id, cutomertype, isthirdparty, waiter_id, order_date, order_time, table_no, totalamount, order_status, orderacceptreject, splitpay_status)
-//                           VALUES (?, ?, ?, ?, ?, NOW(), CURTIME(), ?, ?, 2, 1, 0)`;
-//     db.pool.query(
-//       orderQuery,
-//       [
-//         invoiceId,
-//         customer_id,
-//         customer_type,
-//         isthirdparty,
-//         waiterId,
-//         tableId,
-//         grand_total,
-//       ],
-//       (err, result) => {
-//         if (err) {
-//           console.error("Error inserting order:", err);
-//           return res.status(500).json({ message: "Internal server error" });
-//         }
-
-//         const orderId = result.insertId;
-
-//         const orderDetailsQuery =
-//           "INSERT INTO order_menu(order_id, menu_id, price, menuqty, add_on_id, addonsqty, varientid, food_status, allfoodready) VALUES ?";
-//         const orderDetailsData = order_details.map((detail) => {
-//           const addOnIds = detail.addons
-//             .map((addon) => addon.add_on_id)
-//             .join(",");
-//           const addOnQuantities = detail.addons
-//             .map((addon) => addon.add_on_quantity)
-//             .join(",");
-
-//           return [
-//             orderId,
-//             detail.ProductsID,
-//             detail.price,
-//             detail.quantity,
-//             addOnIds,
-//             addOnQuantities,
-//             detail.variantid,
-//             0, // food_status
-//             0, // allfoodready
-//           ];
-//         });
-
-//         db.pool.query(orderDetailsQuery, [orderDetailsData], (err, result) => {
-//           if (err) {
-//             console.error("Error inserting order details:", err);
-//             return res.status(500).json({ message: "Internal server error" });
-//           }
-
-//           // Update the table status to 1 (booked)
-//           const updateTableStatusQuery =
-//             "UPDATE rest_table SET status = 1 WHERE tableid = ?";
-//           db.pool.query(updateTableStatusQuery, [table_id], (err, result) => {
-//             if (err) {
-//               console.error("Error updating table status:", err);
-//               return res.status(500).json({ message: "Internal server error" });
-//             }
-
-//             const total_amount = grand_total - service_charge - VAT - discount;
-
-//             let shipping_type;
-//             switch (customer_type) {
-//               case 1:
-//                 shipping_type = 3;
-//                 break;
-//               case 2:
-//                 shipping_type = 1;
-//                 break;
-//               case 3:
-//                 shipping_type = 1;
-//                 break;
-//               case 99:
-//                 shipping_type = 1;
-//                 break;
-//               case 4:
-//                 shipping_type = 2;
-//                 break;
-//               default:
-//                 shipping_type = null;
-//             }
-
-//             // Insert into bill table
-//             const invoiceQuery =
-//               "INSERT INTO bill (customer_id, order_id, total_amount, discount, service_charge, shipping_type, VAT, bill_amount, bill_date, bill_time, create_at, bill_status, payment_method_id, create_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), CURTIME(), NOW(), 0, 0, NOW())";
-//             const bill_data = [
-//               customer_id,
-//               orderId,
-//               total_amount,
-//               discount,
-//               service_charge || 0.0,
-//               shipping_type,
-//               VAT || 0.0,
-//               grand_total,
-//             ];
-
-//             db.pool.query(invoiceQuery, bill_data, (err, result) => {
-//               if (err) {
-//                 console.error("Error inserting invoice:", err);
-//                 return res
-//                   .status(500)
-//                   .json({ message: "Internal server error" });
-//               }
-
-//               if (customer_type == 1 || customer_type == 99) {
-//                 // Insert into table_details for customer_type 1 or 99
-//                 const additionalQuery =
-//                   "INSERT INTO table_details(table_id, customer_id, order_id, time_enter, created_at) VALUES (?, ?, ?, CURTIME(), NOW())";
-//                 const additionalData = [table_id, customer_id, orderId];
-//                 db.pool.query(additionalQuery, additionalData, (err, result) => {
-//                   if (err) {
-//                     console.error("Error inserting table data:", err);
-//                     return res
-//                       .status(500)
-//                       .json({ message: "Internal server error" });
-//                   }
-//                 });
-//               }
-
-//               // Fetch the inserted customer_order data with additional information
-//               const fetchCustomerOrderDataQuery = `
-//                 SELECT co.*, c.customer_name,
-//                   w.firstname AS waiter_first_name,
-//                   w.lastname AS waiter_last_name,
-//                   ct.customer_type AS customer_type_name,
-//                   CASE co.order_status
-//                           WHEN 1 THEN 'Pending'
-//                           WHEN 2 THEN 'Processing'
-//                           WHEN 3 THEN 'Ready'
-//                           WHEN 4 THEN 'Served'
-//                           WHEN 5 THEN 'Cancel'
-//                         END as order_status_name
-//                 FROM customer_order co
-//                 LEFT JOIN customer_info c ON co.customer_id = c.customer_id
-//                 LEFT JOIN customer_type ct ON co.cutomertype = ct.customer_type_id
-//                 LEFT JOIN user w ON co.waiter_id = w.id
-
-//                 WHERE co.order_id = ?`;
-//               db.pool.query(
-//                 fetchCustomerOrderDataQuery,
-//                 [orderId],
-//                 (err, customerOrderData) => {
-//                   if (err) {
-//                     console.error("Error fetching customer order data:", err);
-//                     return res
-//                       .status(500)
-//                       .json({ message: "Internal server error" });
-//                   }
-
-//                   // Fetch the inserted order_menu data with additional information
-//                   const fetchOrderMenuDataQuery = `
-//                     SELECT om.*,
-//                         f.ProductName,
-//                         a.add_on_id,
-//                         a.add_on_name,
-//                         a.price AS addons_price,
-//                         v.variantName,
-//                         om.addonsqty
-//                     FROM order_menu om
-//                     LEFT JOIN item_foods f ON om.menu_id = f.ProductsID
-//                     LEFT JOIN add_ons a ON FIND_IN_SET(a.add_on_id, om.add_on_id)
-//                     LEFT JOIN variant v ON om.varientid = v.variantid
-//                     WHERE om.order_id = ?
-//                     ORDER BY om.row_id, FIND_IN_SET(a.add_on_id, om.add_on_id)`;
-//                   db.pool.query(
-//                     fetchOrderMenuDataQuery,
-//                     [orderId],
-//                     (err, rawOrderMenuData) => {
-//                       if (err) {
-//                         console.error("Error fetching order menu data:", err);
-//                         return res
-//                           .status(500)
-//                           .json({ message: "Internal server error" });
-//                       }
-
-//                       // Process the raw order menu data to group add-ons
-//                       const orderMenuData = [];
-//                       const orderMenuMap = {};
-
-//                       rawOrderMenuData.forEach((row) => {
-//                         if (!orderMenuMap[row.row_id]) {
-//                           orderMenuMap[row.row_id] = {
-//                             row_id: row.row_id,
-//                             order_id: row.order_id,
-//                             menu_id: row.menu_id,
-//                             ProductName: row.ProductName,
-//                             price: row.price,
-//                             groupmid: row.groupmid,
-//                             notes: row.notes,
-//                             menuqty: row.menuqty,
-//                             add_on_id: row.add_on_id,
-//                             addonsqty: row.addonsqty,
-//                             varientid: row.varientid,
-//                             groupvarient: row.groupvarient,
-//                             addonsuid: row.addonsuid,
-//                             qroupqty: row.qroupqty,
-//                             isgroup: row.isgroup,
-//                             food_status: row.food_status,
-//                             allfoodready: row.allfoodready,
-//                             isupdate: row.isupdate,
-//                             variantName: row.variantName,
-//                             addons: [],
-//                           };
-//                           orderMenuData.push(orderMenuMap[row.row_id]);
-//                         }
-
-//                         // Ensure add_on_id and addonsqty are strings before splitting
-//                         const addOnIds = String(row.add_on_id).split(",");
-//                         const addonQtyArray = String(row.addonsqty).split(",");
-
-//                         addOnIds.forEach((id, index) => {
-//                           if (row.add_on_name && row.addons_price) {
-//                             orderMenuMap[row.row_id].addons.push({
-//                               add_on_id: id,
-//                               name: row.add_on_name,
-//                               price: row.addons_price,
-//                               quantity: addonQtyArray[index],
-//                             });
-//                           }
-//                         });
-//                       });
-
-//                       // Fetch the inserted bill data
-//                       const fetchBillDataQuery =
-//                         "SELECT b.*, sm.shipping_method AS shipping_method_name FROM bill b LEFT JOIN shipping_method sm ON b.shipping_type = sm.ship_id WHERE b.order_id = ?";
-//                       db.pool.query(
-//                         fetchBillDataQuery,
-//                         [orderId],
-//                         (err, billData) => {
-//                           if (err) {
-//                             console.error("Error fetching bill data:", err);
-//                             return res
-//                               .status(500)
-//                               .json({ message: "Internal server error" });
-//                           }
-
-//                           res.status(201).json({
-//                             message: "Order placed successfully",
-//                             orderId,
-//                             invoiceId,
-//                             customerOrderData: customerOrderData[0],
-//                             orderMenuData,
-//                             billData: billData[0],
-//                           });
-//                         }
-//                       );
-//                     }
-//                   );
-//                 }
-//               );
-//             });
-//           });
-//         });
-//       }
-//     );
-//   });
-// };
-
-// get todayOrders
 
 const orderPlace = (req, res) => {
   const {
@@ -475,8 +176,9 @@ const orderPlace = (req, res) => {
     VAT,
     discount,
     table_id,
+    
   } = req.body;
-  const create_by = req.id;
+  const create_by=req.id;
 
   if (
     !customer_id ||
@@ -528,6 +230,7 @@ const orderPlace = (req, res) => {
 
         const orderDetailsQuery =
           "INSERT INTO order_menu(order_id, menu_id, price, menuqty, add_on_id, addonsqty, varientid, food_status, allfoodready) VALUES ?";
+         
         const orderDetailsData = order_details.map((detail) => {
           const addOnIds = detail.addons
             .map((addon) => addon.add_on_id)
@@ -539,6 +242,7 @@ const orderPlace = (req, res) => {
           return [
             orderId,
             detail.ProductsID,
+            
             detail.price,
             detail.quantity,
             addOnIds,
@@ -555,6 +259,43 @@ const orderPlace = (req, res) => {
             return res.status(500).json({ message: "Internal server error" });
           }
 
+          const insertQuery = `
+          INSERT INTO sub_order 
+          (order_id, customer_id, vat, discount, s_charge,  order_menu_id,total_price,menu_qty,  adons_id, adons_qty,status,varient_id)
+          VALUES ?`;
+
+
+          const orderDetailsData1 = order_details.map((detail) => {
+            const addOnIds = detail.addons
+              .map((addon) => addon.add_on_id)
+              .join(",");
+            const addOnQuantities = detail.addons
+              .map((addon) => addon.add_on_quantity)
+              .join(",");
+  
+            return [
+              orderId,
+              customer_id,
+              VAT,
+              discount,
+              service_charge,
+              
+              detail.ProductsID,
+              detail.price,
+              detail.quantity,
+              addOnIds,
+              addOnQuantities,
+              
+              0, // food_status
+              detail.variantid,
+             
+            ];
+          });
+          db.pool.query(insertQuery, [orderDetailsData1], (err, result) => {
+            if (err) {
+              console.error("Error inserting order details:", err);
+              return res.status(500).json({ message: "Internal server error" });
+            }
           // Update the table status to 1 (booked)
           const updateTableStatusQuery =
             "UPDATE rest_table SET status = 1 WHERE tableid = ?";
@@ -615,19 +356,17 @@ const orderPlace = (req, res) => {
                 const additionalQuery =
                   "INSERT INTO table_details(table_id, customer_id, order_id, time_enter, created_at) VALUES (?, ?, ?, CURTIME(), NOW())";
                 const additionalData = [table_id, customer_id, orderId];
-                db.pool.query(
-                  additionalQuery,
-                  additionalData,
-                  (err, result) => {
-                    if (err) {
-                      console.error("Error inserting table data:", err);
-                      return res
-                        .status(500)
-                        .json({ message: "Internal server error" });
-                    }
+                db.pool.query(additionalQuery, additionalData, (err, result) => {
+                  if (err) {
+                    console.error("Error inserting table data:", err);
+                    return res
+                      .status(500)
+                      .json({ message: "Internal server error" });
                   }
-                );
+                });
               }
+
+              //rough
 
               // Fetch the inserted customer_order data with additional information
               const fetchCustomerOrderDataQuery = `
@@ -765,9 +504,9 @@ const orderPlace = (req, res) => {
         });
       }
     );
+  })
   });
 };
-
 const getTodayOrders = async (req, res) => {
   const { searchItem } = req.query;
 

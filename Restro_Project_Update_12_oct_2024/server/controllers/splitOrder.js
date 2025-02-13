@@ -11,89 +11,91 @@ const dbQuery = (query, values) => {
     });
   };
 
-  const showsplitorder = async (req, res) => {
-    try {
+  
+
+const showsplitorder = async (req, res) => {
+  try {
       const orderId = req.params.id;
-  
-      // Validate orderId
+
       if (!orderId) {
-        return res.status(400).json({ message: "Order ID is required" });
+          return res.status(400).json({ message: "Order ID is required" });
       }
-  
+
       // Fetch order information
-      const orderQuery = `SELECT * FROM customer_order WHERE order_id = ?`;
-      db.pool.query(orderQuery, [orderId], (err, orderResult) => {
-        if (err) {
-          console.error("Error fetching order information:", err);
-          return res.status(500).json({ message: "Error fetching order information" });
-        }
-  
-        if (!orderResult || orderResult.length === 0) {
+      const orderQuery = `SELECT * FROM customer_order co 
+                          LEFT JOIN bill b ON b.order_id = co.order_id 
+                          WHERE co.order_id = ?`;
+      const [orderResult] = await db.pool.promise().query(orderQuery, [orderId]);
+
+      if (!orderResult || orderResult.length === 0) {
           return res.status(404).json({ message: "Order not found" });
-        }
-  
-        // Fetch order menu items
-        const getOrderMenuQuery = `
-          SELECT
-              om.*,
-              f.*,
+      }
+
+      // Fetch order menu items with structured data
+      const getOrderMenuQuery = `
+          SELECT 
+              s.sub_id,
+              s.order_menu_id,
+              s.menu_qty,
+              s.varient_id,
               v.variantName,
+              f.ProductsID,
+              f.productvat,
+              f.ProductName,
+              s.total_price,
               GROUP_CONCAT(a.add_on_id) AS add_on_ids,
               GROUP_CONCAT(a.add_on_name) AS add_on_names,
-              GROUP_CONCAT(a.price) AS add_on_prices
-          FROM
-              order_menu om
-              LEFT JOIN add_ons a ON FIND_IN_SET(a.add_on_id, om.add_on_id)
-              LEFT JOIN item_foods f ON om.menu_id = f.ProductsID
-              LEFT JOIN variant v ON om.varientid = v.variantid
-          WHERE
-              om.order_id = ?
-          GROUP BY om.menu_id, om.varientid;
-        `;
-  
-        db.pool.query(getOrderMenuQuery, [orderId], (err, menuResult) => {
-          if (err) {
-            console.error("Error fetching menu items:", err);
-            return res.status(500).json({
-              success: false,
-              message: "An error occurred while fetching menu items",
-            });
-          }
-  
-          // Process menuResult to structure add-on data
-          const structuredMenuItems = menuResult.map((item) => {
-            const addOnIds = item.add_on_ids ? item.add_on_ids.split(",") : [];
-            const addOnNames = item.add_on_names ? item.add_on_names.split(",") : [];
-            const addOnPrices = item.add_on_prices ? item.add_on_prices.split(",") : [];
-            const addOnQuantities = item.addonsqty ? item.addonsqty.split(",") : [];
-  
-            const addOns = addOnIds.map((id, index) => ({
-              add_on_id: id,
-              add_on_name: addOnNames[index] || null,
-              add_on_price: addOnPrices[index] || null,
-              add_on_quantity: addOnQuantities[index] || null,
-            }));
-  
-            return {
-              ...item,
+              GROUP_CONCAT(a.price) AS add_on_prices,
+              s.adons_qty
+          FROM sub_order s
+          LEFT JOIN item_foods f ON s.order_menu_id = f.ProductsID
+          LEFT JOIN variant v ON s.varient_id = v.variantid
+          LEFT JOIN add_ons a ON FIND_IN_SET(a.add_on_id, s.adons_id)
+          WHERE s.order_id = ? AND s.status = 0
+          GROUP BY s.sub_id
+      `;
+
+      const [menuItemsResult] = await db.pool.promise().query(getOrderMenuQuery, [orderId]);
+
+      // Process and structure the menu items
+      const structuredMenuItems = menuItemsResult.map(item => {
+          const addOnIds = item.add_on_ids ? item.add_on_ids.split(',') : [];
+          const addOnNames = item.add_on_names ? item.add_on_names.split(',') : [];
+          const addOnPrices = item.add_on_prices ? item.add_on_prices.split(',') : [];
+          const addOnQuantities = item.adons_qty ? item.adons_qty.split(',') : [];
+
+          const addOns = addOnIds.map((id, index) => ({
+              id,
+              name: addOnNames[index],
+              price: parseFloat(addOnPrices[index]),
+              quantity: addOnQuantities[index] ? parseInt(addOnQuantities[index], 10) : 1,
+          }));
+
+          return {
+              sub_id: item.sub_id,
+              order_menu_id: item.order_menu_id,
+              menu_qty: item.menu_qty,
+              varient_id: item.varient_id,
+              variantName: item.variantName,
+              ProductsID: item.ProductsID,
+              ProductName: item.ProductName,
+              total_price: item.total_price,
+              Product_vat: item.productvat,
               add_ons: addOns,
-            };
-          });
-  
-          // Send response
-          res.status(200).json({
-            order: orderResult[0],
-            menuItems: structuredMenuItems,
-            message: "Split order data fetched successfully",
-          });
-        });
+          };
       });
-    } catch (error) {
+
+      res.status(200).json({
+          success: true,
+          order: orderResult[0],
+          menuItems: structuredMenuItems,
+          message: "Split order data fetched successfully",
+      });
+  } catch (error) {
       console.error("Error in showsplitorder:", error);
       res.status(500).json({ message: "Server error", error });
-    }
-  };
-  // merge order api
+  }
+};
 
   const mergeMakePayment = (req, res) => {
     const orderIds = req.body.orderid;
@@ -202,93 +204,111 @@ const dbQuery = (query, values) => {
   };
 
 
+
   const paymentSplitOrder = async (req, res) => {
-    const { sub_order_ids, paidAmount, payment_method_id, discount } = req.body;
-    const order_id=sub_order_ids[0];
+        const { sub_order_ids, paidAmount, payment_method_id, discount } = req.body;
 
-    // if (!order_id || !Array.isArray(paidAmount) || paidAmount.length === 0 || 
-    //     !Array.isArray(payment_method_id) || paidAmount.length !== payment_method_id.length) {
-    //     return res.status(400).json({ message: 'Required fields are missing or invalid paidAmount/payment_method_id data' });
-    // }
-
-    try {
-        // Use `promise().query()` for all queries
-        await db.pool.promise().query('UPDATE sub_order SET discount = ?, status = 1 WHERE sub_id = ?', [discount, order_id]);
-        await db.pool.promise().query('UPDATE sub_order SET invoiceprint = 2 WHERE sub_id = ?', [order_id]);
-
-        // Fetch sub_order details
-        const [orderSub] = await db.pool.promise().query('SELECT * FROM sub_order WHERE sub_id = ?', [order_id]);
-
-        if (!orderSub.length) {
-            return res.status(404).json({ message: 'Order not found' });
-        }
-        const order_id1 = orderSub[0].order_id;
-        console.log("orderid", orderSub[0].order_id);
-        const menu_id = orderSub[0].order_menu_id;
-        console.log("menuid", menu_id);
+        if (!Array.isArray(sub_order_ids) || sub_order_ids.length === 0 ||
         
-        // Corrected SQL query with proper WHERE condition
-        const [data] = await db.pool.promise().query(
-            'UPDATE order_menu SET food_status = 1 WHERE order_id = ? AND menu_id = ?', 
-            [order_id1, menu_id]
-        );
-        
-        console.log(data, "menuuuu");
-             
-// Fetch bill details
-        const [billInfo] = await db.pool.promise().query('SELECT * FROM bill WHERE order_id = ?', [order_id1]);
-        if (!billInfo.length) {
-            return res.status(404).json({ message: 'Bill not found' });
+            !Array.isArray(payment_method_id) ) {
+            return res.status(400).json({ message: 'Invalid input data' });
         }
-        const bill_id = billInfo[0].bill_id;
 
-        // Process multiple payments
-        let paidAmount = 0;
-        for (let i = 0; i < paidAmount.length; i++) {
-            paidAmount += parseFloat(paidAmount[i]);
+        try {
+            // Update discount and status for all `sub_order_ids`
+            await Promise.all(sub_order_ids.map(sub_id => 
+                db.pool.promise().query('UPDATE sub_order SET discount = ?, status = 1 WHERE sub_id = ?', [discount, sub_id])
+            ));
+
+            // // Set `invoiceprint` to 2 for all `sub_order_ids`
+            // await Promise.all(sub_order_ids.map(sub_id => 
+            //     db.pool.promise().query('UPDATE sub_order SET invoiceprint = 2 WHERE sub_id = ?', [sub_id])
+            // ));
+
+            // Fetch all sub_order details
+            const subOrderDetails = await Promise.all(sub_order_ids.map(sub_id =>
+                db.pool.promise().query('SELECT * FROM sub_order WHERE sub_id = ?', [sub_id])
+            ));
+
+            if (subOrderDetails.some(([rows]) => rows.length === 0)) {
+                return res.status(404).json({ message: 'One or more sub-orders not found' });
+            }
+
+            const order_id = subOrderDetails[0][0][0].order_id; 
+            console.log("suborderdetail",subOrderDetails[0][0][0].order_id  )
+            console.log(subOrderDetails,"sunorferdertaill")
+            const menu_ids = subOrderDetails.map(([rows]) => rows[0].order_menu_id);
+        console.log("menu",menu_ids)
+
+            // Update food status for all `menu_id`s related to the provided `sub_order_ids`
             await db.pool.promise().query(
-                'INSERT INTO multipay_bill (order_id, multipayid, payment_type_id, amount) VALUES (?, ?, ?, ?)', 
-                [order_id1, bill_id, payment_method_id[i], paidAmount[i]]
+                'UPDATE order_menu SET food_status = 1 WHERE order_id = ? AND menu_id IN (?)',
+                [order_id, menu_ids]
             );
+    console.log("order",order_id)
+            // Fetch bill details
+            const [billInfo] = await db.pool.promise().query('SELECT * FROM bill WHERE order_id = ?', [order_id]);
+            if (!billInfo.length) {
+                return res.status(404).json({ message: 'Bill not found' });
+            }
+
+            const bill_id = billInfo[0].bill_id;
+
+            // // Process multiple payments
+            // let totalPaidAmount = 0;
+            // await Promise.all(paidAmount.map(async (amount, index) => {
+            //     totalPaidAmount += parseFloat(amount);
+                await db.pool.promise().query(
+                    'INSERT INTO multipay_bill (order_id, multipayid, payment_type_id, amount) VALUES (?, ?, ?, ?)', 
+                    [order_id, bill_id, payment_method_id[0], paidAmount]
+                );
+            // }));
+
+            await db.pool.promise().query('UPDATE customer_order SET splitpay_status = 1, invoiceprint = 2 WHERE order_id = ?', [order_id]);
+
+            // Check if all sub-orders are completed
+            const [totalOrder] = await db.pool.promise().query('SELECT COUNT(*)AS total FROM sub_order WHERE status = 0 AND order_id = ?', [order_id]);
+
+            if (totalOrder[0].total === 0) {
+                const [totalDiscount] = await db.pool.promise().query('SELECT SUM(discount)AS totaldiscount FROM sub_order WHERE order_id = ?', [order_id]);
+                const [billDetails] = await db.pool.promise().query('SELECT bill_amount FROM bill WHERE order_id = ?', [order_id]);
+                const [orderResult] = await db.pool.promise().query('SELECT * FROM customer_order WHERE order_id = ?', [order_id]);
+      console.log("oprder",orderResult[0].table_no)
+      console.log("oprder split",orderResult[0].splitpay_status)
+                if (orderResult.length && orderResult[0].table_no !== 0) {
+                  const table_no = orderResult[0].table_no;
+                  await db.pool.promise().query('UPDATE rest_table SET status = 0 WHERE tableid = ?', [table_no]);
+                }
+
+                await db.pool.promise().query('UPDATE customer_order SET order_status = 4 WHERE order_id = ?', [order_id]);
+
+                const updatedBill = {
+                    bill_status: 1,
+                    discount: totalDiscount[0].totaldiscount || 0,
+                    bill_amount: billDetails[0].bill_amount,
+                    payment_method_id: payment_method_id[0],
+                    create_at: new Date(),
+                };
+
+                await db.pool.promise().query('UPDATE bill SET ? WHERE order_id = ?', [updatedBill, order_id]);
+                await db.pool.promise().query('DELETE FROM table_details WHERE order_id = ?', [order_id]);
+       
+
+                const [finalBill] = await db.pool.promise().query('SELECT * FROM bill WHERE order_id = ?', [order_id]);
+
+                return res.status(200).json({
+                    message: 'Order processed successfully',
+                    finalBillAmount: finalBill[0].bill_amount,
+                    splitpay_status:orderResult[0].splitpay_status,
+                });
+            } else {
+                return res.status(200).json({ message: 'Partial payment received, awaiting remaining payments',  splitpay_status:1});
+            }
+        } catch (error) {
+            console.error('Error processing the order:', error);
+            return res.status(500).json({ message: 'Internal server error', error: error.message });
         }
-
-        await db.pool.promise().query('UPDATE customer_order SET splitpay_status = 1, invoiceprint = 2 WHERE order_id = ?', [order_id1]);
-
-        // Check if all sub-orders are completed
-        const [totalOrder] = await db.pool.promise().query('SELECT COUNT(*)AS total FROM sub_order WHERE status = 0 AND order_id = ?', [order_id1]);
-        if (totalOrder[0].total === 0) {
-            const [totalDiscount] = await db.pool.promise().query('SELECT SUM(discount)AS totaldiscount FROM sub_order WHERE order_id = ?', [order_id1]);
-            const [billDetails] = await db.pool.promise().query('SELECT bill_amount FROM bill WHERE order_id = ?', [order_id1]);
-
-            await db.pool.promise().query('UPDATE customer_order SET order_status = 4 WHERE order_id = ?', [order_id1]);
-console.log("dis",totalDiscount[0].totaldiscount,"bill",billDetails[0].bill_amount)
-            const updatedBill = {
-                bill_status: 1,
-                discount: totalDiscount[0].totaldiscount || 0,
-                bill_amount: billDetails[0].bill_amount - (totalDiscount[0].totaldiscount || 0),
-                payment_method_id: payment_method_id[0],
-              
-                create_at: new Date(),
-            };
-
-            await db.pool.promise().query('UPDATE bill SET ? WHERE order_id = ?', [updatedBill, order_id1]);
-            await db.pool.promise().query('DELETE FROM table_details WHERE order_id = ?', [order_id1]);
-
-            const [finalBill] = await db.pool.promise().query('SELECT * FROM bill WHERE order_id = ?', [order_id1]);
-            console.log("final",finalBill)
-
-            return res.status(200).json({
-                message: 'Order processed successfully',
-                finalBillAmount: finalBill[0].bill_amount,
-            });
-        } else {
-            return res.status(200).json({ message: 'Partial payment received, awaiting remaining payments' });
-        }
-    } catch (error) {
-        console.error('Error processing the order:', error);
-        return res.status(500).json({ message: 'Internal server error', error: error.message });
-    }
-};
+    };
   module.exports={
     showsplitorder,
     mergeMakePayment,

@@ -25,5 +25,5 @@ router.get("/invoice/:orderid", pointcontroller.getOrderByIdsDUeMerge);
 
 router.post("/cancelAllOrder/:order_id", pointcontroller.cancelAllTypeOrder);
 // for split bill
-router.post('/postsplit',pointcontroller.postsplitorder)
+// router.post('/postsplit',pointcontroller.postsplitorder)
 module.exports=router;

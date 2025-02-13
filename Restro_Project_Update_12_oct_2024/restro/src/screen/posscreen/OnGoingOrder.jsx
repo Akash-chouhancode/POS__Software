@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
 import Nav from "../../components/Nav";
 import { useReactToPrint } from "react-to-print";
 import { NavLink } from "react-router-dom";
@@ -64,13 +64,11 @@ const OnGoingOrder = () => {
   const [splitModal, setSplitModal] = useState(false);
   const [invoiceDataModal, setInvoiceDataModal] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState([]);
-  const [selecteSplitOrderid, setSelecteSplitOrderid] = useState(0);
+
   const [selectedDueOrders, setSelectedDueOrders] = useState([]);
-const [customersplitID,setCustomersplitID]=useState(null)
-const[orderSplitId,setOrderSplitID]=useState(null)
+
   //delete id
   const [selectedOrderId, setSelectedOrderId] = useState(null);
-
   const closeModaldelete = () => setIsDeletOpen(false);
 
   const OrderButtons = [
@@ -296,14 +294,13 @@ const[orderSplitId,setOrderSplitID]=useState(null)
     );
   };
 
-  const showShplitData = (order_id,customer_id) => {
+  const showShplitData = (order_id, customer_id) => {
     axios
       .get(`${API_BASE_URL}/splitorderdata/${order_id}`)
       .then((response) => {
-        setSplitData(response.data.menuItems);
+        const menuItems = response.data.menuItems;
+        setSplitData(menuItems); // Update state only when there are multiple items
         setSplitModal(true);
-        setCustomersplitID(customer_id)
-        setOrderSplitID(order_id)
         getBookTable();
       })
       .catch((error) => {
@@ -312,9 +309,9 @@ const[orderSplitId,setOrderSplitID]=useState(null)
   };
 
   const handleCheckboxChange = (item) => {
-    if (selectedItems.some((selected) => selected.row_id === item.row_id)) {
+    if (selectedItems.some((selected) => selected.sub_id === item.sub_id)) {
       setSelectedItems(
-        selectedItems.filter((selected) => selected.row_id !== item.row_id)
+        selectedItems.filter((selected) => selected.sub_id !== item.sub_id)
       );
     } else {
       setSelectedItems([...selectedItems, item]);
@@ -325,39 +322,17 @@ const[orderSplitId,setOrderSplitID]=useState(null)
     setSplitModal(false);
     setSelectedItems([]); // Reset selected items when closing modal
   };
-  const Toatalsplit = (selectedItems
+  const Toatalsplit = selectedItems
     .reduce((acc, item) => acc + item.menuqty * parseFloat(item.price), 0)
-    .toFixed(2));
+    .toFixed(2);
 
-//  const orderIds = selectedItems.map((order) => order.order_id);
-  const payForselecteditem = ()=>{
-    const formData = {
-      order_id: orderSplitId,
-      customer_id:customersplitID,
-      total_price:Toatalsplit,
-      order_menu:selectedItems
-     
-    };
- 
-   
-  
-    axios
-    .post(`${API_BASE_URL}/postsplit`, formData)
-    .then((response) => {
-    console.log("subid ",response.data.sub_order_ids
-      );
-      setSelecteSplitOrderid(response.data.sub_order_ids)   
-    setSplitPaynmentModal(true)
-    })
-    .catch((error) => {
-      console.error(error);
-      toast.error("Something went wrong..");
-    });
-
-  }
+  const orderIds = selectedItems.map((order) => order.sub_id);
+  const payForselecteditem = () => {
+    setSplitPaynmentModal(true);
+  };
 
   const remainingItems = splitData.filter(
-    (item) => !selectedItems.some((selected) => selected.row_id === item.row_id)
+    (item) => !selectedItems.some((selected) => selected.sub_id === item.sub_id)
   );
 
   useEffect(() => {
@@ -409,11 +384,51 @@ const[orderSplitId,setOrderSplitID]=useState(null)
       });
   };
 
+  // for selected item total
+  const total = selectedItems.reduce((acc, item) => {
+    const qty = parseFloat(item.menu_qty) || 0; // Ensure qty is a number
+    const price = parseFloat(item.total_price) || 0; // Ensure price is a number
+    const vat = parseFloat(item.Product_vat) || 0; // Ensure vat is a number
+  
+    // Calculate the total price of add-ons
+    const addonsPrice = item.add_ons && item.add_ons.length > 0
+      ? item.add_ons.reduce((addonAcc, val) => {
+          const addonQty = parseFloat(val.quantity) || 0; // Ensure addon quantity is a number
+          const addonPrice = parseFloat(val.price) || 0; // Ensure addon price is a number
+          return addonAcc + (addonQty * addonPrice); // Accumulate the add-on total
+        }, 0)
+      : 0; // Default to 0 if no add-ons
+  
+    return acc + (qty * price) + vat + addonsPrice; // Accumulate the total
+  }, 0).toFixed(2); // Format the total to 2 decimal places
+// for remaining total
+
+const totalremaning = remainingItems.reduce((acc, item) => {
+  const qty = parseFloat(item.menu_qty) || 0; // Ensure qty is a number
+  const price = parseFloat(item.total_price) || 0; // Ensure price is a number
+  const vat = parseFloat(item.Product_vat) || 0; // Ensure vat is a number
+
+  // Calculate the total price of add-ons
+  const addonsPrice = item.add_ons && item.add_ons.length > 0
+    ? item.add_ons.reduce((addonAcc, val) => {
+        const addonQty = parseFloat(val.quantity) || 0; // Ensure addon quantity is a number
+        const addonPrice = parseFloat(val.price) || 0; // Ensure addon price is a number
+        return addonAcc + (addonQty * addonPrice); // Accumulate the add-on total
+      }, 0)
+    : 0; // Default to 0 if no add-ons
+
+  return acc + (qty * price) + vat + addonsPrice; // Accumulate the total
+}, 0).toFixed(2); // Format the total to 2 decimal places
+
+
+
+
   const refreshOrderList = () => {
     getOngoing();
     getBookTable();
     getunBookTable();
-    setSelectedOrders([]);
+    setSplitModal(false);
+    closeModal();
   };
   useEffect(() => {
     getOngoing();
@@ -543,14 +558,17 @@ const[orderSplitId,setOrderSplitID]=useState(null)
                               Table:
                               {val.tablename ? val.tablename : "No table found"}
                             </span>
-                            <input
-                              type="checkbox"
-                              onChange={() => handleCheckboxMerge(val)}
-                              className="size-5 custom-checkbox"
-                              checked={selectedOrders.some(
-                                (order) => order.order_id === val.order_id
-                              )}
-                            />
+
+                            {val.splitpay_status !== 1 && (
+                              <input
+                                type="checkbox"
+                                onChange={() => handleCheckboxMerge(val)}
+                                className="size-5 custom-checkbox"
+                                checked={selectedOrders.some(
+                                  (order) => order.order_id === val.order_id
+                                )}
+                              />
+                            )}
                           </div>
 
                           <div className="  px-3 font-semibold">
@@ -562,33 +580,34 @@ const[orderSplitId,setOrderSplitID]=useState(null)
                                 : "No Waiter Found"}
                             </h2>
                           </div>
-                          {val.bill_status !== 1 && (
-                            <div className=" flex gap-x-2">
+
+                          <div className=" flex gap-x-2">
+                            {val.splitpay_status !== 1 && (
                               <button
                                 onClick={() => {
                                   showPaynment(val.order_id);
                                 }}
-                                className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
+                                className="mb-3 mt-5 w-full items-center justify-center gap-1 px-1 py-1 flex bg-[#4CBBA1] text-[#fff] cursor-pointer rounded-sm"
                               >
                                 <IoMdCheckmarkCircleOutline />
-
                                 <span className="text-[#fff]">
                                   {" "}
                                   Make Payment
                                 </span>
                               </button>
-                              <button
-                                onClick={() => {
-                                  showShplitData(val.order_id,val.customer_id);
-                                }}
-                                className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
-                              >
-                                <PiSplitHorizontalBold />
+                            )}
 
-                                <span className="text-[#fff]">Split</span>
-                              </button>
-                            </div>
-                          )}
+                            <button
+                              onClick={() => {
+                                showShplitData(val.order_id, val.customer_id);
+                              }}
+                              className=" mb-3 mt-5  w-full items-center  justify-center gap-1  px-1 py-1 flex bg-[#4CBBA1] text-[#fff]  cursor-pointer  rounded-sm "
+                            >
+                              <PiSplitHorizontalBold />
+
+                              <span className="text-[#fff]">Split</span>
+                            </button>
+                          </div>
 
                           <div className=" flex gap-x-3 overflow-hidden">
                             <button
@@ -608,20 +627,17 @@ const[orderSplitId,setOrderSplitID]=useState(null)
                               Print
                             </button>
 
-                            <button
-                              className=" items-center gap-1  px-1 py-1 flex bg-[#a02828] text-[#fff]  cursor-pointer rounded-sm text-sm"
-                              onClick={() => {
-                                deleteOrder(val.order_id);
-                              }}
-                            >
-                              <FaRegTrashCan />
-                              Cancel
-                            </button>
-                            <DeletModal
-                              isOpen={isDeletOpen}
-                              order_id={selectedOrderId}
-                              onClose={closeModaldelete}
-                            />
+                            {val.splitpay_status !== 1 && (
+                              <button
+                                className=" items-center gap-1  px-1 py-1 flex bg-[#a02828] text-[#fff]  cursor-pointer rounded-sm text-sm"
+                                onClick={() => {
+                                  deleteOrder(val.order_id);
+                                }}
+                              >
+                                <FaRegTrashCan />
+                                Cancel
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -657,8 +673,6 @@ const[orderSplitId,setOrderSplitID]=useState(null)
                           {val.bill_status !== 1 && (
                             <div className=" flex gap-x-2">
                               <button
-                                // onClick={}
-
                                 onClick={() => {
                                   getMergePaymentdata(val.marge_order_id);
                                 }}
@@ -915,32 +929,59 @@ const[orderSplitId,setOrderSplitID]=useState(null)
         onClose={() => closeModal()}
       >
         {/* div to show the menu item */}
-        <div className="w-1/3">
+        <div className="">
           {splitData && splitData.length > 0 ? (
-            <div>
-              <h2 className="text-lg font-semibold mb-4">Menu Items</h2>
-              <ul className="space-y-4">
-                {splitData.map((item) => (
-                  <li
-                    key={item.row_id}
-                    className="flex items-center justify-between gap-x-5 p-2 border-[1px] border-[#4CBBA1] rounded-md shadow-sm"
-                  >
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        onChange={() => handleCheckboxChange(item)}
-                        className="size-5 custom-checkbox "
-                      />
-                      <span className="text-gray-700">{item.ProductName}</span>
-                    </label>
-                    <div className="flex items-center space-x-6">
-                      <span>Quantity: {item.menuqty}</span>
-                      <span>Price: {parseFloat(item.price).toFixed(2)}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+           <div>
+           <h2 className="text-lg font-semibold mb-4">Menu Items</h2>
+           <ul className="space-y-4">
+             {splitData.map((item) => (
+               <li
+                 key={item.sub_id}
+                 className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-3 border border-[#4CBBA1] rounded-lg shadow-sm"
+               >
+                 {/* Checkbox and Item Details */}
+                 <label className="flex  items-center space-x-6">
+                   <input
+                     type="checkbox"
+                     onChange={() => handleCheckboxChange(item)}
+                     className="custom-checkbox"
+                   />
+                   <div className="flex flex-col">
+                     <span className="text-gray-800 font-medium">{item.variantName}</span>
+                     {item.add_ons && item.add_ons.length > 0 && (
+                       <span className="text-sm text-gray-600">
+                         Add-ons: {item.add_ons.map((val) => val.name).join(", ")}
+                       </span>
+                     )}
+                   </div>
+                 </label>
+         
+                 {/* Quantity and Price Details */}
+                 <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-6 text-gray-700">
+                   <div>
+                     <span className="font-medium">Qty:</span> {item.menu_qty}
+                   </div>
+                   {item.add_ons && item.add_ons.length > 0 && (
+                     <div>
+                       <span className="font-medium">Add-ons Qty:</span>{" "}
+                       {item.add_ons.map((val) => val.quantity).join(", ")}
+                     </div>
+                   )}
+                   <div>
+                     <span className="font-medium">Total Price:</span>{" "}
+                     {parseFloat(item.total_price) * parseInt(item.menu_qty)}
+                   </div>
+                   {item.add_ons && item.add_ons.length > 0 && (
+                     <div>
+                       <span className="font-medium">Add-ons Price:</span>{" "}
+                       {item.add_ons.map((val) => val.quantity * val.price).join(", ")}
+                     </div>
+                   )}
+                 </div>
+               </li>
+             ))}
+           </ul>
+         </div>
           ) : (
             <p className="text-gray-500">No menu items available.</p>
           )}
@@ -966,97 +1007,109 @@ const[orderSplitId,setOrderSplitID]=useState(null)
                 </thead>
                 <tbody>
                   {selectedItems.map((item) => (
-                    <tr key={item.row_id} className="border-b">
+                    <tr key={item.sub_id} className="border-b">
                       <td className="border-[1px] border-[#4CBBA1] p-2">
-                        {item.ProductName}
+                        {item.variantName}
                       </td>
                       <td className="border-[1px] border-[#4CBBA1] p-2">
-                        {item.menuqty}
+                        {item.menu_qty}
                       </td>
                       <td className="border-[1px] border-[#4CBBA1] p-2">
-                        {parseFloat(item.price).toFixed(2)}
+                        {parseFloat(item.total_price) * (item.menu_qty)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <div>
-              <strong>Total: </strong>
-              {selectedItems
-                .reduce(
-                  (acc, item) => acc + item.menuqty * parseFloat(item.price),
-                  0
-                )
-                .toFixed(2)}
+            <div className=" mt-5 flex justify-between items-center">
+              <div>
+                <button
+                  onClick={() => {
+                    payForselecteditem();
+                  }}
+                  className="bg-[#0f044a]  text-[#fff] border-[2px] border-zinc-300 rounded-xl cursor-pointer p-3"
+                >
+                  Pay for Selected Items
+                </button>
+              </div>
+              <div className="">
+                <strong>Total(vat+prise): </strong>
+                {total}
+              </div>
             </div>
-            <button 
-            onClick={(()=>{
-              payForselecteditem()
-            })}
-            
-            className="bg-[#0f044a]  text-[#fff] border-[2px] border-zinc-300 rounded-xl cursor-pointer p-3">
-              Pay for Selected Items
-            </button>
           </div>
 
           {/* Remaining Items Section */}
-          <div className=" ">
-            <h3 className="text-lg font-bold">Remaining Items</h3>
-            <table className="min-w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-300 p-2 text-left">
-                    Product Name
-                  </th>
-                  <th className="border border-gray-300 p-2 text-left">
-                    Quantity
-                  </th>
-                  <th className="border border-gray-300 p-2 text-left">
-                    Price
-                  </th>
-                  <th className="border border-gray-300 p-2 text-left">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {remainingItems.map((item) => (
-                  <tr key={item.row_id} className="border-b">
-                    <td className="border border-gray-300 p-2">
-                      {item.ProductName}
+
+          {remainingItems.length > 0 ? (
+            <div className=" mt-5">
+              <h3 className="text-lg font-bold mb-2 ">Remaining Items</h3>
+              <table className="min-w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border-[1px] border-[#4CBBA1] p-2 text-left">
+                      Product Name
+                    </th>
+                    <th className="border-[1px] border-[#4CBBA1] p-2 text-left">
+                      Quantity
+                    </th>
+                    <th className="border-[1px] border-[#4CBBA1] p-2 text-left">
+                      Price
+                    </th>
+                    <th className="border-[1px] border-[#4CBBA1] p-2 text-left">
+                      Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {remainingItems.map((item) => (
+                    <tr key={item.sub_id} className="border-b">
+                      <td className="border-[1px] border-[#4CBBA1] p-2">
+                        {item.variantName}
+                      </td>
+                      <td className="border-[1px] border-[#4CBBA1] p-2">
+                        {item.menu_qty}
+                      </td>
+                      <td className="border-[1px] border-[#4CBBA1] p-2">
+                        {item.total_price}
+                      </td>
+                      <td className="border-[1px] border-[#4CBBA1] p-2">
+                        {(item.menu_qty * parseFloat(item.total_price))+ parseFloat(item.Product_vat)}
+
+
+
+
+
+
+
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td
+                      colSpan="3"
+                      className="border-[1px] border-[#4CBBA1] p-2 text-right"
+                    >
+                      <strong>Total(vat+prise):</strong>
                     </td>
-                    <td className="border border-gray-300 p-2">
-                      {item.menuqty}
-                    </td>
-                    <td className="border border-gray-300 p-2">{item.price}</td>
-                    <td className="border border-gray-300 p-2">
-                      {(item.menuqty * parseFloat(item.price)).toFixed(2)}
+                    <td className="border-[1px] border-[#4CBBA1] p-2">
+                    
+            {totalremaning}
+         
+                        
                     </td>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td
-                    colSpan="3"
-                    className="border border-gray-300 p-2 text-right"
-                  >
-                    <strong>Total:</strong>
-                  </td>
-                  <td className="border border-gray-300 p-2">
-                    {remainingItems
-                      .reduce(
-                        (acc, item) =>
-                          acc + item.menuqty * parseFloat(item.price),
-                        0
-                      )
-                      .toFixed(2)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500  text-center mt-10">
+              No items available for split.
+            </p>
+          )}
         </div>
       </SplitModal>
 
@@ -1076,24 +1129,14 @@ const[orderSplitId,setOrderSplitID]=useState(null)
         paymentMethod={paymentMethod}
       ></SplitPaynmentModal>
 
- <SplitpayModal
-  refreshOrderList={refreshOrderList}
-  isOpen={splitpaynmentModal}
-  onClose={() => setSplitPaynmentModal(false)}
-  paymentData={[selectedItems]}
-  paymentMethod={paymentMethod}
-  Orderids={selecteSplitOrderid}
- 
- 
- 
- >
-
-
-
-
- </SplitpayModal>
-
-
+      <SplitpayModal
+        refreshOrderList={refreshOrderList}
+        isOpen={splitpaynmentModal}
+        onClose={() => setSplitPaynmentModal(false)}
+        paymentData={[selectedItems]}
+        paymentMethod={paymentMethod}
+        Orderids={orderIds}
+      ></SplitpayModal>
 
       <DuemergePaynmentModal
         refreshOrderList={refreshOrderList}
@@ -1109,6 +1152,11 @@ const[orderSplitId,setOrderSplitID]=useState(null)
         invoiceDatas={invoiceData}
         img={logo}
       ></InvoiceDialogBox>
+      <DeletModal
+        isOpen={isDeletOpen}
+        order_id={selectedOrderId}
+        onClose={closeModaldelete}
+      />
       <div className=" hidden">
         <InvoiceDialogBox2 billData={billData} ref={componentRef} />
       </div>
