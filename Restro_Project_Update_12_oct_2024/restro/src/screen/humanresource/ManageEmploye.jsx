@@ -12,7 +12,7 @@ import { FaRegEye, FaRegEdit } from "react-icons/fa";
 import { FaRegTrashCan } from "react-icons/fa6";
 import DeleteDialogBox from "../../components/DeleteDialogBox";
 import axios from "axios";
-import defaultimage from "../../assets/images/Accounts.png";
+import defaultimage from "../../assets/images/Account.png";
 import { useNavigate } from "react-router-dom";
 import HasPermission from "../../store/HasPermission";
 import EmployeePreview from "../../components/EmployeePreview";

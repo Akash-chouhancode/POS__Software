@@ -635,6 +635,9 @@ const getCashRegister = async (req, res) => {
       queryParams.push(searchPattern, searchPattern, searchPattern);
     }
 
+
+    query +=` ORDER BY cr.id DESC`;
+   
     // Execute the query with parameters
     const rows = await dbQuery(query, queryParams);
 
@@ -651,7 +654,6 @@ const getCashRegister = async (req, res) => {
     });
   }
 };
-
 // get cash register user 
 
 const getCashUser = async (req, res) => {

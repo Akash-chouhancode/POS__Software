@@ -2,16 +2,19 @@ import React, { useState, useContext, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import pic1 from "../assets/images/Order_Management.png";
 import pic2 from "../assets/images/eservation.png";
-import pic3 from "../assets/images/Purchase_Management.png";
+import pic3 from "../assets/images/Purchase_Manage.png";
 import pic4 from "../assets/images/Report.png";
-import pic5 from "../assets/images/Food_Management.png";
-import pic6 from "../assets/images/Production.png";
+import pic5 from "../assets/images/Food_Mgmt.png";
+import pic6 from "../assets/images/Loyalty.png";
 import pic7 from "../assets/images/Setting.png";
-import pic8 from "../assets/images/Accounts.png";
-import pic9 from "../assets/images/HR.png";
-import pic10 from "../assets/images/Facebook_Setting.png";
+import pic8 from "../assets/images/Account.png";
+import pic9 from "../assets/images/Human_Resourse.png";
+import pic10 from "../assets/images/Web_Setting.png";
 import pic11 from "../assets/images/Waste_Tracking.png";
-import pic12 from "../assets/images/Qr_App.png";
+import pic12 from "../assets/images/inventory_management.png";
+import pic13 from "../assets/images/Recipe_Mgmt.png";
+import pic14 from "../assets/images/Roles_&_Permission.png";
+import pic15 from "../assets/images/Master_Setup.png";
 import Button from "../components/Button";
 import Nav from "../components/Nav";
 import { AuthContext } from "../store/AuthContext";
@@ -31,32 +34,34 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
   return (
     <>
-      <div className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none">
-        <div className="relative w-auto my-6 mx-auto  max-w-4xl">
-          {/*content*/}
-          <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none">
-            {/*header*/}
-            <div className="flex items-start justify-between p-5 border-b border-solid border-blueGray-200 rounded-t">
-              <h3 className="text-3xl pr-11 font-semibold">{title}</h3>
-              <button
-                onClick={onClose}
-                className="text-white bg-[#FB3F3F] px-2 hover:scale-105 font-bold rounded-sm"
-              >
-                X
-              </button>
+    <>
+  <div className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none">
+    <div className="relative w-auto my-6 mx-auto max-w-4xl">
+      {/* Content */}
+      <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none">
+        {/* Header */}
+        <div className="flex items-start justify-between p-5 border-b border-solid border-blueGray-200 rounded-t">
+          <h3 className="text-3xl pr-11 font-semibold">{title}</h3>
+          <button
+            onClick={onClose}
+            className="text-white bg-[#FB3F3F] px-2 hover:scale-105 font-bold rounded-sm"
+          >
+            X
+          </button>
+        </div>
+        {/* Body */}
+        <div className="relative p-6 flex-auto">
+          <p className="my-4 text-blueGray-500 text-lg leading-relaxed">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {data}
             </div>
-            {/*body*/}
-            <div className="relative p-6 flex-auto">
-              <p className="my-4 text-blueGray-500 text-lg leading-relaxed">
-                <div className=" flex justify-evenly flex-wrap gap-3">
-                  {data}
-                </div>
-              </p>
-            </div>
-          </div>
+          </p>
         </div>
       </div>
-      <div className=" opacity-55 fixed inset-0 z-40 bg-black"></div>
+    </div>
+  </div>
+  <div className="opacity-55 fixed inset-0 z-40 bg-black"></div>
+</>
     </>
   );
 };
@@ -73,10 +78,7 @@ const Menuecard = [
       { title: "Pending Order", link: "/pending-order" },
       { title: "Complete Order", link: "/complete-order" },
       { title: "Cancel Order", link: "/cancel-order" },
-      // { title: "Kitchen Dashboard", link: "/kitchen-dashboard" },
-      // { title: "Counter Dashboard", link: "/working" },
-      // { title: "Counter list", link: "/counter-list" },
-      // { title: "POS Setting", link: "/pos-setting" },
+    
     ],
   },
   {
@@ -88,7 +90,6 @@ const Menuecard = [
       { title: "All Reservations", link: "/reservation" },
       { title: "Add Booking", link: "/add-booking" },
       { title: "Unavailable today", link: "/unavailability-days" },
-      // { title: "Reservation setting", link: "/reservation-setting" },
     ],
   },
   {
@@ -145,12 +146,33 @@ const Menuecard = [
     title: "Recipe Mgmt.",
 
     submanu: true,
-    images: pic6,
+    images: pic13,
     submanuItems: [
       { title: "Set Production Unit", link: "/set-production-unit" },
       { title: "Production Set List", link: "/set-production-list" },
       { title: "Add Production", link: "/add-production" },
       // { title: "Production Setting", link: "/working" },
+    ],
+  },
+  {
+    title: "Invenory Mgmt.",
+
+    submanu: true,
+    images: pic12,
+    submanuItems: [
+      { title: "Ingredient stock list", link: "/stock-list" },
+      { title: "Stock out ingredients", link: "/stock-out-ingredients" },
+      
+    ],
+  },
+  {
+    title: "Loyalty",
+
+    submanu: true,
+    images: pic6,
+    submanuItems: [
+      { title: "Point Setting", link: "/point-setting" },
+      { title: "Customer Point List", link: "/customer-point" },
     ],
   },
   {
@@ -171,7 +193,7 @@ const Menuecard = [
     ],
   },
   {
-    title: "Account",
+    title: "User & Staf",
 
     submanu: true,
     images: pic8,
@@ -219,7 +241,7 @@ const Menuecard = [
   {
     title: "Roles & Permission",
     submanu: true,
-    images: pic8,
+    images: pic14,
 
     submanuItems: [
       // { title: "Permission Setup", link: "/premission-setup" },
@@ -231,7 +253,7 @@ const Menuecard = [
   {
     title: "Master Set-up",
     submanu: true,
-    images: pic12,
+    images: pic15,
     submanuItems: [
       { title: "Unit Measurement", link: "/unit-measurement" },
       { title: "Ingredients", link: "/ingredient-list" },
@@ -278,7 +300,7 @@ const Home = () => {
   const [checkOut, setCheckOut] = useState(false);
   const [openSubmenuIndex, setOpenSubmenuIndex] = useState(null);
   const [orders, setOrders] = useState([]);
-
+ const { permissions, isAdmin } = useContext(AuthContext);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const selectPage = (page) => {
@@ -310,6 +332,26 @@ const Home = () => {
         toast.error("Error in getting transaction");
       });
   };
+
+
+  const hasAnyPermission = (moduleName) => {
+    if (isAdmin) {
+      return true;
+    }
+
+    const modulePermissions = permissions.find(
+      (perm) => perm.module_name === moduleName
+    );
+    return (
+      modulePermissions &&
+      (modulePermissions.can_access === 1 ||
+        modulePermissions.can_create === 1 ||
+        modulePermissions.can_edit === 1 ||
+        modulePermissions.can_delete === 1)
+    );
+  };
+
+
   useEffect(() => {
     rcenttransaction();
   }, []);
@@ -317,102 +359,98 @@ const Home = () => {
 
   return (
     <>
-      <div className="main_div flex gap-x-11  ">
-        <div className="">
-          <Nav />
+     <div className="main_div flex gap-x-4">
+     <div className="nav-container hide-scrollbar h-screen overflow-y-auto">
+  <Nav />
+</div>  
+
+  <div className="mt-5 p-2 flex-1  hide-scrollbar h-screen overflow-y-auto">
+  <div className="flex flex-col lg:flex-row justify-between items-center">
+  <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+    <button
+      onClick={handleNavigation1}
+      className="text-xl flex h-[51px] items-center gap-x-3 bg-[#1C1D3E] text-[#fff] border-[2px] border-zinc-300 rounded-md cursor-pointer px-7 py-3"
+    >
+      <FaBellConcierge /> POS Invoice
+    </button>
+    <button
+      onClick={handleNavigation2}
+      className="text-xl flex h-[51px] items-center gap-x-3 bg-[#1C1D3E] text-[#fff] border-[2px] border-zinc-300 rounded-md cursor-pointer px-7 py-3"
+    >
+      <FaClipboardList /> Order List
+    </button>
+    <button
+      onClick={handleNavigation3}
+      className="text-xl flex h-[51px] items-center gap-x-3 bg-[#1C1D3E] text-[#fff] border-[2px] border-zinc-300 rounded-md cursor-pointer px-7 py-3"
+    >
+      <FaClipboardList /> Complete Order
+    </button>
+    <button
+      onClick={() => setCheckOut(true)}
+      className="text-xl flex h-[51px] items-center gap-x-3 bg-[#1C1D3E] text-[#fff] border-[2px] border-zinc-300 rounded-md cursor-pointer px-7 py-3"
+    >
+      <FaClock />
+      Check-in/Check-out
+    </button>
+  </div>
+  <div className="flex flex-row gap-x-7 mt-4 lg:mt-0">
+    <IoMdNotifications className="bg-[#1C1D3E] text-white rounded-sm p-1 text-4xl" />
+    <MdOutlineZoomOutMap
+      onClick={toggleFullScreen}
+      className="bg-[#1C1D3E] text-white cursor-pointer rounded-sm p-1 text-4xl"
+    />
+  </div>
+</div>
+
+    <h1 className="mt-7 font-bold text-xl">Welcome {username}</h1>
+
+    {/* service card */}
+    <div
+  onClick={() => {
+    showitem();
+    showmodeldata();
+  }}
+  className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 ${showModal && "opacity-55"}`}
+>
+  {Menuecard.filter((items) => {
+    const filteredSubmenuItems = items.submanuItems
+      ? items.submanuItems.filter((subItem) => hasAnyPermission(subItem.title))
+      : [];
+
+    if (items.submanu && filteredSubmenuItems.length === 0) return false;
+
+    return true;
+  }).map((items, index) => (
+    <div
+      key={index}
+      className="overflow-hidden bg my-5 border-[3px] border-[#1C1D3E] rounded-lg cursor-pointer w-full" // Removed responsive widths here
+      onClick={() => {
+        showitem(index);
+        showmodeldata(index);
+      }}
+    >
+      <div className="px-6 py-4 flex flex-col justify-center items-center">
+        <div className="overflow-hidden w-24 h-16">
+          <img src={items.images} alt="image" className="w-full h-full" />
         </div>
-
-        <div className=" mt-5 p-2 ">
-          <div className="flex  justify-between items-center">
-            <div className="flex items-center gap-x-5">
-              <button
-                onClick={handleNavigation1}
-                className=" text-xl flex h-[51px] items-center gap-x-3 bg-[#1C1D3E] text-[#fff] border-[2px] border-zinc-300 rounded-md cursor-pointer px-7 py-3"
-              >
-                <FaBellConcierge /> POS Invoice
-              </button>
-              <button
-                onClick={handleNavigation2}
-                className=" text-xl flex h-[51px] items-center gap-x-3 bg-[#1C1D3E] text-[#fff] border-[2px] border-zinc-300 rounded-md cursor-pointer px-7 py-3"
-              >
-                <FaClipboardList /> Order List
-              </button>
-              <button
-                onClick={handleNavigation3}
-                className=" text-xl flex h-[51px] items-center gap-x-3 bg-[#1C1D3E] text-[#fff] border-[2px] border-zinc-300 rounded-md cursor-pointer px-7 py-3"
-              >
-                <FaClipboardList /> Complete Order
-              </button>
-              <button
-                onClick={() => setCheckOut(true)}
-                className=" text-xl flex h-[51px] items-center gap-x-3 bg-[#1C1D3E] text-[#fff] border-[2px] border-zinc-300 rounded-md cursor-pointer px-7 py-3"
-              >
-                <FaClock />
-                Check-in/Check-out
-              </button>
-            </div>
-            <div className=" flex flex-row gap-x-7">
-              <IoMdNotifications className="  bg-[#1C1D3E] text-white rounded-sm p-1 text-4xl" />
-              <IoSettings className="   bg-[#1C1D3E] text-white rounded-sm p-1 text-4xl" />
-              <LiaLanguageSolid className=" bg-[#1C1D3E] text-white rounded-sm p-1 text-4xl" />
-              <MdOutlineZoomOutMap
-                onClick={toggleFullScreen}
-                className=" bg-[#1C1D3E] text-white cursor-pointer rounded-sm p-1 text-4xl"
-              />
-            </div>
-          </div>
-
-          <h1 className="  mt-7 font-bold text-xl">Welcome {username}</h1>
-
-          {/* service card */}
-          <div
-            onClick={() => {
-              showitem();
-              showmodeldata();
-            }}
-            className={` grid grid-cols-6 gap-x-11  px-7  ${
-              showModal && " opacity-55"
-            } `}
-          >
-            {Menuecard.map((items, index) => {
-              return (
-                <div
-                  key={index}
-                  className="overflow-hidden my-5   border-[3px] border-[#cc9853f6]  rounded-lg cursor-pointer"
-                  onClick={() => {
-                    showitem(index);
-                    showmodeldata(index);
-                  }}
-                >
-                  <div className="px-6 py-4 flex flex-col justify-center items-center">
-                    <div className="overflow-hidden   w-24 h-16">
-                      <img
-                        src={items.images}
-                        alt="image"
-                        className="w-full h-full"
-                      />
-                    </div>
-                    <div className="text-xl mb-1 text-center ">
-                      {items.title}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <Modal
-            isOpen={showModal}
-            onClose={() => setShowModal(false)}
-            title={modalTitle}
-          >
-            {modalContent.map((val, index) => (
-              <Button key={index}>
-                <NavLink to={val.link}>{val.title}</NavLink>
-              </Button>
-            ))}
-          </Modal>
-        </div>
+        <div className="text-xl mb-1 text-center">{items.title}</div>
       </div>
+    </div>
+  ))}
+</div>
+    <Modal
+      isOpen={showModal}
+      onClose={() => setShowModal(false)}
+      title={modalTitle}
+    >
+      {modalContent.map((val, index) => (
+        <Button key={index}>
+          <NavLink to={val.link}>{val.title}</NavLink>
+        </Button>
+      ))}
+    </Modal>
+  </div>
+</div>
 
       <DialogBoxSmall
         title={"Check-in/Check-out "}

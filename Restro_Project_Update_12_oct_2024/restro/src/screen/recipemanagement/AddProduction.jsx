@@ -416,7 +416,7 @@ new Date(item.saveddate).toLocaleDateString(),
                 <input
                   type="date"
                   name="saveddate"
-                  value={formData.saveddate}
+                  value={formData.saveddate || new Date().toISOString().split('T')[0]}
                   onChange={handleChange}
                   className="border-[1px] border-[#4CBBA1] p-2 rounded w-full"
                 />
@@ -449,7 +449,7 @@ new Date(item.saveddate).toLocaleDateString(),
                 <input
                   type="date"
                   name="productionexpiredate"
-                  value={formData.productionexpiredate}
+                  value={formData.productionexpiredate || new Date().toISOString().split('T')[0]}
                   onChange={handleChange}
                   className="border-[1px] border-[#4CBBA1] p-2 rounded w-full"
                 />

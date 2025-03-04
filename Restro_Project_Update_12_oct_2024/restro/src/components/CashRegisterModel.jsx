@@ -27,14 +27,16 @@ const CashRegisterModel = ({ isOpen, onClose, setIsCashRegisterOpen}) => {
   ).toLocaleString();
 
   const handleregister = (id) => {
+    console.log("closing_balance",data.closingBalance)
     axios
+
       .put(`${API_BASE_URL}/cashregisters/${id}`, {
-        closing_balance: Math.ceil(
-          (data.openBalance || 0) + (data.closingBalance || 0)
-        ), // Removed extra space in "closing_balance"
+        closing_balance: data.closingBalance ,
         closing_note: note,
         closedate: currentdate,
+        
       })
+     
       .then((res) => {
         console.log(res.data);
         onClose()

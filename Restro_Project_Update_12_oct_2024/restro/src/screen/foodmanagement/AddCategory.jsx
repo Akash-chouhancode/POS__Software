@@ -1,4 +1,4 @@
-import React, { useEffect, useState ,useContext} from "react";
+import React, { useEffect, useState, useContext } from "react";
 import Nav from "../../components/Nav";
 import Hamburger from "hamburger-react";
 import { IoMdNotifications } from "react-icons/io";
@@ -13,7 +13,7 @@ import useFullScreen from "../../components/useFullScreen";
 const AddCategory = () => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const APP_URL = import.meta.env.VITE_APP_URL;
-  const VITE_IMG_URL= import.meta.env.VITE_IMG_URL
+  const VITE_IMG_URL = import.meta.env.VITE_IMG_URL;
   // Initial form data state
   const initialFormData = {
     name: "",
@@ -41,7 +41,8 @@ const AddCategory = () => {
   const [isChecked, setIsChecked] = useState(false);
 
   const handleCheckboxChange = (e) => {
-    setIsChecked((e.target.checked = 1));
+    // setIsChecked((e.target.checked = 1));
+    setIsChecked((e.target.checked ));
   };
 
   // const handleSubmit = (e) => {
@@ -62,7 +63,7 @@ const AddCategory = () => {
   //   axios
   //     .post(`${API_BASE_URL}/data`, data,{headers:{"Authorization":token}})
   //     .then((res) => {
-      
+
   //       // Reset the form data to initial state
   //       toast.success("Category  created successfully");
 
@@ -93,11 +94,14 @@ const AddCategory = () => {
 
     if (!navigator.onLine) {
       // Save data to localStorage if offline
-      const offlineData = JSON.parse(localStorage.getItem("offlineCategories")) || [];
+      const offlineData =
+        JSON.parse(localStorage.getItem("offlineCategories")) || [];
       offlineData.push(data);
       localStorage.setItem("offlineCategories", JSON.stringify(offlineData));
 
-      toast.info("You are offline. Data saved locally and will sync when online.");
+      toast.info(
+        "You are offline. Data saved locally and will sync when online."
+      );
       resetForm();
     } else {
       // Submit data to server if online
@@ -124,7 +128,9 @@ const AddCategory = () => {
         }
       } catch (error) {
         console.error("Error submitting form:", error);
-        toast.error(error.response?.data?.error || "Failed to create category.");
+        toast.error(
+          error.response?.data?.error || "Failed to create category."
+        );
       }
     }
   };
@@ -138,7 +144,8 @@ const AddCategory = () => {
 
   // Sync offline data to the server
   const syncDataToServer = async () => {
-    const offlineData = JSON.parse(localStorage.getItem("offlineCategories")) || [];
+    const offlineData =
+      JSON.parse(localStorage.getItem("offlineCategories")) || [];
     if (offlineData.length === 0) return;
 
     const remainingData = [];
@@ -163,7 +170,10 @@ const AddCategory = () => {
         if (response.status === 200) {
           console.log("Offline data synced successfully:", item);
         } else {
-          console.error("Error syncing data:", response.data?.message || "Unknown error");
+          console.error(
+            "Error syncing data:",
+            response.data?.message || "Unknown error"
+          );
           remainingData.push(item);
         }
       } catch (error) {
@@ -189,7 +199,9 @@ const AddCategory = () => {
     };
 
     const handleOffline = () => {
-      toast.warning("You are offline. Changes will be synced when you're back online.");
+      toast.warning(
+        "You are offline. Changes will be synced when you're back online."
+      );
     };
 
     window.addEventListener("online", handleOnline);
@@ -202,20 +214,6 @@ const AddCategory = () => {
     };
   }, []);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
   // Function to sync offline data when back online
   // const syncOfflineData = () => {
   //   const offlineData = JSON.parse(localStorage.getItem("offlineCategories")) || [];
@@ -229,13 +227,13 @@ const AddCategory = () => {
   //           formData.append(key, item[key]);
   //         }
   //       });
-  
+
   //       axios
   //         .post(`${API_BASE_URL}/data`, formData, { headers: { Authorization: token } })
   //         .then((res) => {
   //           console.log("Offline data synced successfully");
   //           toast.success("Offline data synced successfully");
-  
+
   //           // Remove synced data from offline storage
   //           const remainingData = offlineData.filter((d) => d !== item);
   //           localStorage.setItem("offlineCategories", JSON.stringify(remainingData));
@@ -244,10 +242,9 @@ const AddCategory = () => {
   //     });
   //   }
   // };
-  
+
   // Event listener for going back online
   // window.addEventListener("online", syncOfflineData);
-
 
   const handelchange = (e) => {
     setFormdata({ ...formdata, [e.target.name]: e.target.value });
@@ -271,7 +268,6 @@ const AddCategory = () => {
 
   return (
     <>
-    
       <div className="main_div ">
         <section className="side_section flex">
           <div className={`${isOpen === false ? "hidden" : ""}`}>
@@ -290,7 +286,10 @@ const AddCategory = () => {
                 <IoMdNotifications className="bg-[#1C1D3E] text-white rounded-sm p-1 text-4xl" />
                 <IoSettings className="bg-[#1C1D3E] text-white rounded-sm p-1 text-4xl" />
                 <LiaLanguageSolid className="bg-[#1C1D3E] text-white rounded-sm p-1 text-4xl" />
-              <MdOutlineZoomOutMap  onClick={toggleFullScreen} className=" bg-[#1C1D3E] text-white cursor-pointer rounded-sm p-1 text-4xl" />
+                <MdOutlineZoomOutMap
+                  onClick={toggleFullScreen}
+                  className=" bg-[#1C1D3E] text-white cursor-pointer rounded-sm p-1 text-4xl"
+                />
               </div>
             </div>
 
@@ -378,6 +377,7 @@ const AddCategory = () => {
                           onChange={handleCheckboxChange}
                           className="size-5 custom-checkbox"
                         />
+                      
                       </div>
                     </div>
 
@@ -436,27 +436,31 @@ const AddCategory = () => {
                         value={formdata.status}
                         onChange={handelchange}
                       >
-                      
                         <option value="1">Active</option>
                         <option value="0">Inactive</option>
                       </select>
                     </div>
 
                     <div className="flex mt-4 float-right gap-x-3">
-                      <HasPermission module="Add Category" action="delete"> <button
-                        className="bg-[#4CBBA1] text-white w-[104px] h-[42px] rounded focus:outline-none focus:shadow-outline"
-                        type="reset"
-                      >
-                        Reset
-                      </button></HasPermission>
-                     
-                      <HasPermission module="Add Category" action="create"> <button
-                        className="bg-[#1C1D3E] text-white w-[104px] h-[42px] rounded focus:outline-none focus:shadow-outline"
-                        type="submit"
-                      >
-                        Save
-                      </button></HasPermission>
-                     
+                      <HasPermission module="Add Category" action="delete">
+                        {" "}
+                        <button
+                          className="bg-[#4CBBA1] text-white w-[104px] h-[42px] rounded focus:outline-none focus:shadow-outline"
+                          type="reset"
+                        >
+                          Reset
+                        </button>
+                      </HasPermission>
+
+                      <HasPermission module="Add Category" action="create">
+                        {" "}
+                        <button
+                          className="bg-[#1C1D3E] text-white w-[104px] h-[42px] rounded focus:outline-none focus:shadow-outline"
+                          type="submit"
+                        >
+                          Save
+                        </button>
+                      </HasPermission>
                     </div>
                   </div>
                 </div>

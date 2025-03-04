@@ -115,7 +115,7 @@ const navigate=useNavigate()
                       ></textarea>
                     </div>
 
-                    <HasPermission module="Cash Register" action="create">
+                    <HasPermission module="POS Invoice" action="create">
                       <div className="float-right flex ml-16 space-x-4">
                         <button
                           type="submit"

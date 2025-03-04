@@ -23,6 +23,7 @@ const Nav = () => {
   const [openSubmenuIndex, setOpenSubmenuIndex] = useState(null);
   const location = useLocation();
   const [data, setData] = useState(null);
+  const [data2, setData2] = useState(null);
   const { isLogin, logoutUser } = useContext(AuthContext);
   useEffect(() => {
     Menus.forEach((menu, index) => {
@@ -300,9 +301,24 @@ const Nav = () => {
       console.error("Error fetching image data:", error);
     }
   };
+  const VITE_IMG_URL= import.meta.env.VITE_IMG_URL;
+  const logoUrls = data2?.map((val) => `${VITE_IMG_URL}${val.fevicon}`) || [];
 
+
+ const fetchImageData2 = () => {
+  axios
+    .get(`${API_BASE_URL}/websetting`)
+    .then((response) => {
+      setData2(response.data.data);
+      console.log("data shiw to imag",data)
+    })
+    .catch((error) => {
+      console.error("Error fetching image data:", error);
+    });
+};
   useEffect(() => {
     fetchImageData();
+    fetchImageData2();
   }, []);
  
   
@@ -319,10 +335,13 @@ const Nav = () => {
         onClick={() => setOpen(!open)}
       />
       <div className="flex items-center gap-3 mt-5 py-3">
-        <SiFoodpanda
+        {/* <SiFoodpanda
           className="text-4xl float-left block cursor-pointer mr-2"
-          onClick={() => setOpen(!open)}
-        />
+         
+        /> */}
+        <span  onClick={() => setOpen(!open)}>
+              <img src={logoUrls} alt="Logo" className="float-start cursor-pointer mr-2" width={70} />
+            </span>
         <h1
           className={`text-2xl cursor-pointer font-bold origin-left ${
             !open && "hidden"

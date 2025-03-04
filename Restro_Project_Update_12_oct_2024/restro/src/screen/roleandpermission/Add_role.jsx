@@ -15,6 +15,7 @@ import useFullScreen from "../../components/useFullScreen";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../store/AuthContext";
 import HasPermission from "../../store/HasPermission";
+import { useNavigate } from "react-router-dom";
 const modules = [
   "POS Invoice",
   "Order List",
@@ -37,7 +38,11 @@ const modules = [
   "Food List",
   "Menu Type",
   "Add Ons",
+  "Ingredient Stock List",
+  "Stock Out Ingredient",
   "Set Production Unit",
+  "Point Setting",
+  "Customer Point List",
   "Production Set List",
   "Add Production",
   "Permission Setup",
@@ -59,7 +64,7 @@ const modules = [
   "Sale Report Filtering",
   "Sale By Date",
   "Sale By Table",
-  "Commission",
+  "Commission Report",
   "Unit Measurement",
   "Ingredients",
   "Kitchen List",
@@ -86,6 +91,7 @@ const modules = [
   "Sound Setting",
   "Supplier Ledger",
   "Shipping Type",
+
   
 ];
 const headers = [
@@ -97,6 +103,7 @@ const headers = [
   "Can Delete",
 ];
 const Add_role = () => {
+  const navigate=useNavigate()
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const [isOpen, setOpen] = useState(true);
   const { token } = useContext(AuthContext);
@@ -151,6 +158,8 @@ const Add_role = () => {
       );
       console.log(response.data);
       toast.success("Roles added successfully");
+      navigate("/rolelist")
+     
     } catch (error) {
       console.error("Error sending data:", error);
       toast.error("Failed to add roles");

@@ -184,6 +184,7 @@ const { isFullScreen, toggleFullScreen } = useFullScreen();
       .then(() => {
         toast.success("Customer details updated successfully!");
         getReservationData(); // Refresh reservation data if needed
+       
         setIsModalOpen(false); // Close modal after update
       })
       .catch((error) => {

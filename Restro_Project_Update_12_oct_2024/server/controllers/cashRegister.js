@@ -175,7 +175,7 @@ const dbQuery = (query, values) => {
     try {
       const { id } = req.params;  // Extracting the 'id' from URL parameters
       const { closedate, closing_note, closing_balance } = req.body;  // Extracting fields from request body
-  
+  console.log(closedate,closing_note,closing_balance)
       // Validate required fields
       if (!closedate || !closing_note || !closing_balance) {
         return res.status(400).json({

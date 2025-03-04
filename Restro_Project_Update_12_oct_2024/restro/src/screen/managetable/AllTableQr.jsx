@@ -54,7 +54,7 @@ const AllTableQr = () => {
                   <div key={index} className="text-center">
                     <img
                       className="border-emerald-200 border-[1px]  rounded-md p-5"
-                      src={`https://api.qrserver.com/v1/create-qr-code/?data=${VITE_IMG_URL}qr-orders/${val.tableid}&size=300x300`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?data=${VITE_IMG_URL}frontend/qr-orders/${val.tableid}&size=300x300`}
                       alt=""
                       title=""
                     />

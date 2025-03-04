@@ -1,27 +1,53 @@
-import React from "react";
-import retrologo from "../assets/images/restrologo.png";
+import React, { useEffect, useState,useContext } from "react";
+import axios from "axios";
+import { AuthContext } from "../store/AuthContext";
 
 export const ComponentToPrintInvoice = React.forwardRef((props, ref) => {
   const { invoiceData } = props;
-
+   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const VITE_IMG_URL=import.meta.env.VITE_IMG_URL
+    const [data, setData] = useState([]);
+    const { userId, username } = useContext(AuthContext);
+    const fetchImageData = () => {
+      axios
+        .get(`${API_BASE_URL}/websetting`)
+        .then((response) => {
+          console.log("previwe",response)
+          setData(response.data.data);
+        })
+        .catch((error) => {
+          console.error("Error fetching image data:", error);
+        });
+    };
+  
+    useEffect(() => {
+      fetchImageData();
+    }, []);
   if (!invoiceData || !invoiceData.length) {
     return <div>No data available</div>;
   }
+  const logoUrls = data.map((val) => {
+   
+    return `${VITE_IMG_URL}${val.logo}`; // Correctly concatenate APP_URL with val.logo
 
+});
+const logoUrls2 = data.map((val) => {
+ 
+  return `${VITE_IMG_URL}${val.logo_footer}`; // Correctly concatenate APP_URL with val.logo
+
+});
   return (
     <div ref={ref}>
       <div className="max-w-lg mx-auto p-4 bg-white border rounded-lg shadow-md">
-        <header className="text-center">
-          <img src={retrologo} alt="Logo" className="mx-auto block" />
-          <h1 className="text-xl font-bold">Restro Uncle</h1>
-          <p>
-            1st Floor, Plot No, 347, Vijay Nagar Square,
-            <br />
-            near Krozzon, Scheme 54 PU4, Indore,
-            <br />
-            Madhya Pradesh 452010
-          </p>
-        </header>
+      <header className="text-center">
+        {data.length > 0 && (
+          <>
+            <img src={logoUrls[0]} alt="Logo" className="mx-auto block" width={200} />
+            <h1 className="text-xl font-bold">{data[0].restro_name}</h1>
+            <p>{data[0].address}</p>
+          </>
+        )}
+      </header>
         <div className="text-center mt-2">
           <p>
             <strong>Date:</strong> {new Date().toLocaleDateString()}
@@ -101,8 +127,8 @@ export const ComponentToPrintInvoice = React.forwardRef((props, ref) => {
         </table>
 
         <footer className="text-center mt-4">
-          <p>Billing To: {invoiceData[0].customerOrderData.customer_name}</p>
-          <p>Bill By: John Doe</p>
+        <p>Billing To: {invoiceData[0].customerOrderData.customer_name}</p>
+          <p>Bill By:{username} </p>
           <p>
             Table: {invoiceData[0].customerOrderData.table_no} | Order No.:{" "}
             {invoiceData[0].customerOrderData.order_id}
@@ -112,12 +138,15 @@ export const ComponentToPrintInvoice = React.forwardRef((props, ref) => {
 
         <div className="text-center mt-4">
           <p className="text-sm">
-            Powered By: BDTASK,{" "}
-            <a href="http://www.bdtask.com" className="underline">
-              www.bdtask.com
-            </a>
+            Powered By:{data[0].powerbytxt}
           </p>
+          <img src={logoUrls2} alt="Logo" className="mx-auto block" width={200} />
         </div>
+
+
+       
+
+        
       </div>
     </div>
   );

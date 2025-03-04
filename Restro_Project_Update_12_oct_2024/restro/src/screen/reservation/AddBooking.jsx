@@ -11,9 +11,10 @@ import { toast } from "react-toastify";
 import HasPermission from "../../store/HasPermission";
 
 import useFullScreen from "../../components/useFullScreen";
+import { useNavigate } from "react-router-dom";
 const AddBooking = () => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
+const navigate=useNavigate()
   const { isFullScreen, toggleFullScreen } = useFullScreen();
   const [isOpen, setOpen] = useState(true);
   const [freeTable, setFreeTable] = useState([]);
@@ -121,6 +122,8 @@ const [cModal, setCmodal] = useState(false);
           toast.success("Table booked successfully");
           setFormData({}); // Clear form data
           checkAvailability(); // Refresh available tables
+          navigate("/reservation")
+          
         })
         .catch((error) => {
           console.error("Error in booking table:", error);

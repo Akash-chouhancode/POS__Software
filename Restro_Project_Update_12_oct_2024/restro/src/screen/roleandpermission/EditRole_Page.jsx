@@ -52,10 +52,8 @@ const EditRole_Page = () => {
     e.preventDefault();
 
     const updatedRoleData = {
-      role: {
-        role_name: roleName,
-        role_description: roleDescription,
-      },
+      role_name: roleName,
+      role_description: roleDescription,
       permissions: permissions,
     };
 
@@ -63,6 +61,7 @@ const EditRole_Page = () => {
     axios
       .put(`${API_BASE_URL}/rolepermission/${id}`, updatedRoleData)
       .then((response) => {
+        console.log("ress",response)
         console.log("Role updated successfully:",updatedRoleData);
         toast.success("Roles Update Sucessfully..");
         navigate("/rolelist");

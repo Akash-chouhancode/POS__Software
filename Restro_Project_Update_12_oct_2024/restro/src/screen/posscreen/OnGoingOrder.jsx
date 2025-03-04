@@ -1034,7 +1034,7 @@ const totalremaning = remainingItems.reduce((acc, item) => {
                 </button>
               </div>
               <div className="">
-                <strong>Total(vat+prise): </strong>
+                <strong>Total(vat+price): </strong>
                 {total}
               </div>
             </div>
@@ -1093,7 +1093,7 @@ const totalremaning = remainingItems.reduce((acc, item) => {
                       colSpan="3"
                       className="border-[1px] border-[#4CBBA1] p-2 text-right"
                     >
-                      <strong>Total(vat+prise):</strong>
+                      <strong>Total(vat+price):</strong>
                     </td>
                     <td className="border-[1px] border-[#4CBBA1] p-2">
                     

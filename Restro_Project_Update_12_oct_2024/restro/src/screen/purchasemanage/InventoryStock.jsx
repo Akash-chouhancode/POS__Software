@@ -336,7 +336,7 @@ const InventoryStock = () => {
                               </td>
                               <td className="py-2 px-4 border border-[#4CBBA1]">
                                 {row.stock_qty
-                                  ? row.uom_name
+                                  ? row.stock_qty
                                   : "No stock quantity found"}
                               </td>
                               <td className="py-2 px-4 border border-[#4CBBA1]">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState,useContext } from "react";
+import React, { useEffect, useState,useContext } from "react";  
 import Nav from "../../components/Nav";
 import Hamburger from "hamburger-react";
 import { IoMdNotifications, IoIosAddCircleOutline } from "react-icons/io";
@@ -536,7 +536,7 @@ const calculateGrandTotal = (items) => {
                           Expiry Date*
                         </label>
                         <input
-                         value={purchaseDetails.purchaseexpiredate}
+                         value={purchaseDetails.purchaseexpiredate || new Date().toISOString().split('T')[0]}
                          onChange={handlePurchaseDetailChange}
                         name="purchaseexpiredate"
                           className="shadow w-full  border-[#4CBBA1] appearance-none border rounded  py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"

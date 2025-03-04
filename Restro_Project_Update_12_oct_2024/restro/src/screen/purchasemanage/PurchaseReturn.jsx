@@ -68,6 +68,11 @@ const { isFullScreen, toggleFullScreen } = useFullScreen();
   };
 
   const handleSubmit = async () => {
+    if (!returnData.length || !returnData[0].reason) {
+      toast.error("Please select a reason for return");
+      return;
+    }
+  
     const returnpurchasedetail = {
       supplier_id: selectedSupplier,
       poNO: selectedInvoice,
@@ -78,56 +83,50 @@ const { isFullScreen, toggleFullScreen } = useFullScreen();
       ), // Calculate the total return amount
       return_reason: returnData[0].reason, // Shared reason for all items
     };
-
+  
     const itemDetails = returnData.map((item) => ({
       product_id: item.ingredient,
       product_rate: item.price,
-      total_qntt: item.return_quantity || 0, // Ensure return_quantity is not undefined
-      total_price: item.price * (item.return_quantity || 0), // Calculate total price for each item
+      total_qntt: item.return_quantity || 0,
+      total_price: item.price * (item.return_quantity || 0),
     }));
-
+  
     const requestData = {
       returnpurchasedetail: [returnpurchasedetail],
       itemdetails: itemDetails,
     };
-
+  
     console.log("Request Data:", requestData);
-
+  
     try {
       const response = await axios.post(
         `${API_BASE_URL}/returnitem`,
-        requestData,{headers:{"Authorization":token}}
+        requestData,
+        { headers: { Authorization: token } }
       );
-      toast.success("Item Return Sucessfully");
-      setReturnData(
-        returnData.map((item) => ({
-          ...item,
-          return_quantity: 0, // Reset return quantity
-        }))
-      );
-
+      toast.success("Item Returned Successfully");
+  
+      // Reset the input fields and reason
+      setReturnData([]);
+  
+      // Optionally, if you want to keep items but reset return_quantity and reason
+      // setReturnData(returnData.map(item => ({ ...item, return_quantity: 0, reason: "" })));
+  
       console.log("Return successful:", response.data);
     } catch (error) {
       console.error("Error submitting return data:", error);
-      toast.error("something Went Wrong.");
+      toast.error("Something went wrong.");
     }
   };
+  
 
   const handleInputChange = (e, index) => {
     const { name, value } = e.target;
-    const updatedData = [...returnData];
-
-    // Validation: Ensure return_quantity is less than or equal to purchase_quantity
-    if (
-      name === "return_quantity" &&
-      value > updatedData[index].purchase_quantity
-    ) {
-      toast.error("Return quantity cannot exceed purchase quantity");
-      return; // Do not update if validation fails
-    }
-
-    updatedData[index][name] = value; // Update specific field (return_quantity or reason)
-    setReturnData(updatedData);
+    setReturnData((prevData) =>
+      prevData.map((item, i) =>
+        i === index ? { ...item, [name]: value } : item
+      )
+    );
   };
   const calculateTotalReturnAmount = () => {
     return returnData.reduce(
@@ -264,13 +263,14 @@ const { isFullScreen, toggleFullScreen } = useFullScreen();
                 </table>
 
                 <div className="mt-2 p-3">
-                  <textarea
-                    cols={70}
-                    name="reason"
-                    placeholder="Reason For Return *"
-                    onChange={(e) => handleInputChange(e, 0)} // Assuming one reason for all items
-                    className="shadow w-full border-[#4CBBA1] appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  ></textarea>
+                <textarea
+  cols={70}
+  name="reason"
+  placeholder="Reason For Return *"
+  value={returnData[0]?.reason || ""} // Ensure controlled input
+  onChange={(e) => handleInputChange(e, 0)}
+  className="shadow w-full border-[#4CBBA1] appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+/>
                 </div>
                 <div
                   className=" flex justify-between

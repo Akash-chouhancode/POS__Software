@@ -652,7 +652,7 @@ const downloadPDF = async () => {
                                   : "Not"}
                               </td>
                               <td className="py-2 px-4 border border-[#4CBBA1]">
-                                {row.shipping_date}
+                                {new Date(row.shipping_date).toLocaleString()}
                               </td>
 
                               <td className="py-2 px-4 border border-[#4CBBA1] ">

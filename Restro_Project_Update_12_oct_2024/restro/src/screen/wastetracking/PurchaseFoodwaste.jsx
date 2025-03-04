@@ -441,7 +441,7 @@ const handleSubmit = async (e) => {
                       className=" m-auto mr-3 text-nowrap text-gray-700   font-semibold mb-2"
                       htmlFor="categoryName"
                     >
-                      Chacked By:-
+                      Checked By:-
                     </label>
 
                     <select

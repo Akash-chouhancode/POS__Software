@@ -57,3 +57,19 @@
   .custom-checkbox2:checked + .custom-label {
     @apply text-[#4CBBA1];
   }
+
+
+  /* Add this to your global CSS file */
+.hide-scrollbar {
+  overflow-y: scroll; /* Enable vertical scrolling */
+}
+
+/* Hide scrollbar for WebKit browsers (Chrome, Safari) */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Hide scrollbar */
+}
+
+/* Hide scrollbar for Firefox */
+.hide-scrollbar {
+  scrollbar-width: none; /* Hide scrollbar */
+}
